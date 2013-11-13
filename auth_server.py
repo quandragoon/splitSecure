@@ -45,7 +45,7 @@ Returns:
 """
 def get_aggregation_servers(username):
   mappingdb = db.user_server_mapping_setup()
-  mapping = mappingdb.query(UsernameAggregationServerMapping).get(username)
+  mapping = mappingdb.query(db.UsernameAggregationServerMapping).get(username)
   if mapping:
     # Obtain the compressed list of aggregation servers, split the compressed
     # list and return to the user as necessary
