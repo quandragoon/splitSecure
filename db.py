@@ -20,6 +20,17 @@ class UsernameAggregationServerMapping(Base):
       % (self.username, self.aggregation_servers)
 
 
+class PasswordSplit(Base):
+  __tablename__ = 'username_password_splits'
+
+  username = Column(String, primary_key=true)
+  hashed_password_split = Column(String)
+
+  def __repr__(self):
+    return "Username=%s, Password split=%s" \
+      % (self.username, self.hashed_password_split)
+
+
 def dbsetup(name, base):
   thisdir = os.path.dirname(os.path.abspath(__file__))
   dbdir   = os.path.join(thisdir, "db", name)
@@ -34,7 +45,10 @@ def dbsetup(name, base):
 
 
 def user_server_mapping_setup():
-  return dbsetup("aggregation_server_mapping", UsernameAggregationServerMapping)
+  return dbsetup('aggregation_server_mapping', UsernameAggregationServerMapping)
+
+def password_split_setup(database_id):
+  return dbsetup('username_password_splits_%s' % database_id, PasswordSplit)
 
 
 if __name__ == '__main__':
