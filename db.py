@@ -23,7 +23,7 @@ class UsernameAggregationServerMapping(Base):
 class PasswordSplit(Base):
   __tablename__ = 'username_password_splits'
 
-  username = Column(String, primary_key=true)
+  username = Column(String, primary_key=True)
   hashed_password_split = Column(String)
 
   def __repr__(self):
