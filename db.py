@@ -9,55 +9,59 @@ import sys
 Base = declarative_base()
 
 
-class UsernameAggregationServerMapping(Base):
-  __tablename__ = 'aggregation_server_mapping'
+class UsernameServerMapping(Base):
+    __tablename__ = 'username_server_mapping'
 
-  username = Column(String, primary_key=True)
-  aggregation_servers = Column(String)
+    username = Column(String, primary_key=True)
+    databases = Column(String)
 
-  def __repr__(self):
-    return "Username=%s, Aggregation servers=%s" \
-      % (self.username, self.aggregation_servers)
-
-
-class PasswordSplit(Base):
-  __tablename__ = 'username_password_splits'
-
-  username = Column(String, primary_key=True)
-  hashed_password_split = Column(String)
-
-  def __repr__(self):
-    return "Username=%s, Password split=%s" \
-      % (self.username, self.hashed_password_split)
+    def __repr__(self):
+        return "Username=%s, Databases=%s" \
+            % (self.username, self.databases)
 
 
-def dbsetup(name, base):
-  thisdir = os.path.dirname(os.path.abspath(__file__))
-  dbdir   = os.path.join(thisdir, "db", name)
-  if not os.path.exists(dbdir):
-    os.makedirs(dbdir)
+class UsernamePolynomialValueMapping(Base):
+    __tablename__ = 'username_polynomial_mapping'
 
-  dbfile  = os.path.join(dbdir, "%s.db" % name)
-  engine  = create_engine('sqlite:///%s' % dbfile)
-  Base.metadata.create_all(engine)
-  session = sessionmaker(bind=engine)
-  return session()
+    username = Column(String, primary_key=True)
+    polynomial_value = Column(String)
+
+    def __repr__(self):
+        return "Username=%s, Polynomial value=%s" \
+            % (self.username, self.polynomial_value)
 
 
-def user_server_mapping_setup():
-  return dbsetup('aggregation_server_mapping', UsernameAggregationServerMapping)
+def dbsetup(name):
+    thisdir = os.path.dirname(os.path.abspath(__file__))
+    dbdir = os.path.join(thisdir, "db", name)
+    if not os.path.exists(dbdir):
+        os.makedirs(dbdir)
 
-def password_split_setup(database_id):
-  return dbsetup('username_password_splits_%s' % database_id, PasswordSplit)
+    dbfile = os.path.join(dbdir, "%s.db" % name)
+    engine = create_engine('sqlite:///%s' % dbfile)
+    Base.metadata.create_all(engine)
+    session = sessionmaker(bind=engine)
+    return session()
+
+
+def username_server_mapping_setup():
+    return dbsetup('username_server_mapping')
+
+
+def polynomial_mapping_setup(database_id):
+    return dbsetup('username_polynomial_mapping_%s' % database_id)
 
 
 if __name__ == '__main__':
-  if len(sys.argv) < 2:
-    print "Usage: %s [init-server-mapping]" % sys.argv[0]
-    exit(1)
+    if len(sys.argv) < 2:
+        print "Usage: %s [init-server-mapping]|[init-db]" % sys.argv[0]
+        exit(1)
 
-  cmd = sys.argv[1]
-  if cmd == 'init-server-mapping':
-    user_server_mapping_setup()
-  else:
-    raise Exception("unknown command %s" % cmd)
+    cmd = sys.argv[1]
+    if cmd == 'init-server-mapping':
+        username_server_mapping_setup()
+    elif cmd == 'init-db':
+        database_id = sys.argv[2]
+        polynomial_mapping_setup(database_id)
+    else:
+        raise Exception("unknown command %s" % cmd)
