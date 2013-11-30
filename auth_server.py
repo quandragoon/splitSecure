@@ -7,23 +7,23 @@ import random
 import urlparse
 
 NUM_DATABASE_SERVERS = 3
-POOL_SIZE = 10
+POOL_SIZE = 5
+AUTH_SERVER_PORT = 8080
 
 DATABASE_SERVERS = [
-    'ip1',
-    'ip2',
-    'ip3',
-    'ip4',
-    'ip5',
-    'ip6',
-    'ip7',
-    'ip8',
-    'ip9',
-    'ip10',
+    '8001',
+    '8002',
+    '8003',
+    '8004',
+    '8005'
 ]
 
 LOGIN = 0
 REGISTER = 1
+
+pending_registration_requests = {}       #Mapping from username to db servers from which the auth server is awaiting a response
+pending_login_requests = {}
+
 
 """
 Returns a list of length NUM_AGGREGATION_SERVERS
@@ -44,8 +44,8 @@ def get_random_database_servers_and_points():
     return database_servers
 
 """
-Returns a list of aggregation servers, given a username.
-Makes a lookup in the username - aggregation servers table
+Returns a list of database servers, given a username.
+Makes a lookup in the username - database servers table
 
 Returns:
     None, if the username does not exist in the table
@@ -65,6 +65,7 @@ def get_database_servers(username, is_registration=False):
         return compressed_mapping
     if is_registration:
         servers = get_random_database_servers_and_points()
+        insert_pending_registration(username, servers)
         compressed_mapping = ['%s:%s' % (x[0], str(x[1])) for x in servers]
         compressed_mapping = ','.join(compressed_mapping)
 
@@ -92,16 +93,83 @@ Returns:
 def register(username):
     return get_database_servers(username, is_registration=True)
 
+def insert_pending_registration(username, servers):
+    pending_registration_requests[username] = []
+    for x in servers:
+        pending_registration_requests[username].append(x[0])
+
+def update_pending_registration(username, serverID):
+    try:
+        pending_registration_requests[username].remove(serverID)
+    except:
+        pass
+    if len(pending_registration_requests[username]) == 0:
+        pending_registration_requests.pop(username)
+
+
+def check_pending_registration(username):
+    if username in pending_registration_requests:
+        return True
+    return False
 
 def login(username):
-    return get_database_servers(username, is_registration=False)
+    compressed_mapping = get_database_servers(username, is_registration=False)
+    insert_pending_login(username, compressed_mapping)
+    return compressed_mapping
 
+def insert_pending_login(username, compressed_mapping):
+    mapping = [[[x.split(':')[0], int(x.split(':')[1]), None] for x in compressed_mapping.split(',')], NUM_DATABASE_SERVERS]
+    pending_login_requests[username] = mapping
+
+def update_pending_login(username, serverID, difference):
+    for i in range (0,len(pending_login_requests[username][0])):
+        x = pending_login_requests[username][0][i]
+        if x[0] == serverID and x[2] == None:
+            pending_login_requests[username][0][i][2] = difference
+            pending_login_requests[username][1] -= 1
+            break
+
+def delete_pending_login(username):
+    pending_login_requests.pop(username)
+
+def verify_password(username):
+    data = pending_login_requests[username][0]
+    print data
+    a1 = data[0][1]**2
+    b1 = data[0][1]
+    c1 = data[0][2]*-1
+
+    a2 = data[1][1]**2
+    b2 = data[1][1]
+    c2 = data[1][2]*-1
+
+    a3 = data[2][1]**2
+    b3 = data[2][1]
+    c3 = data[2][2]*-1
+    delete_pending_login(username)
+    sol1 = solve_linear_equation(a1,b1,c1,a2,b2,c2)
+    sol2 = solve_linear_equation(a3,b3,c3,a2,b2,c2)
+    print sol1, '   ', sol2
+
+    if sol1[0] == sol2[0] and sol1[1] == sol2[1]:
+        return True
+    return False
+
+def solve_linear_equation(a1, b1, c1, a2, b2, c2):
+    x = (b1*c2 - b2*c1)/(a2*b1 - b2*a1)
+    y = (a1*c2 - a2*c1)/(a1*b2 - a2*b1)
+    return (x,y)
+    
+    
+def check_pending_login(username):
+    if username in pending_login_requests:
+        if pending_login_requests[username][1] > 0:
+            return True
+    return False
 
 class CustomHandler(BaseHTTPServer.BaseHTTPRequestHandler):
 
     def do_GET(self):
-        # Do nothing
-        # TODO: Change this behavior
         pass
 
     def do_POST(self):
@@ -109,33 +177,86 @@ class CustomHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         post_body = self.rfile.read(content_len)
         args = urlparse.parse_qs(post_body)
 
-        username = args.get('username', None)[0]
-        password = args.get('password', None)[0]
-        submit_type = args.get('submit', None)[0]
-        # TODO: Check if username, password or submit_type is None
-        # TODO: Insert assert to make sure returned lists have length 1
+        try:
+            username = args.get('username', None)[0]
+            submit_type = args.get('submit', None)[0]
+        except:
+            self.send_post_response("Username is incorrect")
+            return
+        
 
-        registration_servers = None
-        request_type = None
         if submit_type == 'Login':
-            # TODO: Add code to return registration_servers in the form of HTTP response
-            request_type = LOGIN
-            registration_servers = login(username)
+            self.do_LOGIN(username)
         elif submit_type == 'Register':
-            # TODO: Add code to return registration_servers in the form of HTTP response
-            request_type = REGISTER
-            registration_servers = register(username)
+            self.do_REGISTER(username)
+        elif submit_type == 'DBregister':
+            try:
+                serverID = args.get('serverID', None)[0]
+                self.verify_registration(serverID, username)
+            except:
+                pass
+        elif submit_type == 'DBlogin':
+            try:
+                serverID = args.get('serverID', None)[0]
+                difference = int(args.get('difference', None)[0])
+                self.verify_login(serverID, username, difference)
+            except:
+                pass
+            
+        return
 
-        # TODO: Return appropriate error msg here if registration servers is
-        # None
-        if not registration_servers:
-            # Return error message here
-            pass
+    def do_LOGIN(self, username):
+        print 'Login Request: ', username
+        registration_servers = None
+        registration_servers = login(username)
+        insert_pending_login(username, registration_servers)
+        if registration_servers:
+            self.send_post_response(registration_servers)
+        else:
+            self.send_post_response("Username is incorrect")
+
+    def do_REGISTER(self, username):
+        print 'Registration Request: ', username
+        registration_servers = None
+        registration_servers = register(username)
+        if registration_servers:
+            self.send_post_response(registration_servers)
+        else:
+            self.send_post_response("Username is incorrect")
+
+    def verify_registration(self, serverID, username):
+        print serverID, ': Registered ', username
+        if check_pending_registration(username):
+            update_pending_registration(username, serverID)
+            if(not check_pending_registration(username)):
+                print username, ': Registration Successful'
+                #TODO: Notify client of successful registration
+
+    def verify_login(self, serverID, username, difference):
+        print serverID, ': Login ', username, ' - Difference = ', difference
+        if check_pending_login(username):
+            update_pending_login(username, serverID, difference)
+            if(not check_pending_login(username)):
+                print username, ': Received all responses'
+                if verify_password(username):
+                    print username, ': Login Successful'
+                    #TODO: Notify client of successful login
+                else:
+                    print username, ': Login Failed'
+                    #TODO: Notify client of login failure
+
+    def send_post_response(self, message):
+        self.send_response(200)
+        self.send_header("Content-type", "text/plain")
+        self.end_headers()
+        self.wfile.write(message)
+        print 'Sent Response: ', message
 
 
 if __name__ == '__main__':
     try:
-        httpd = BaseHTTPServer.HTTPServer(('', 8000), CustomHandler)
+        httpd = BaseHTTPServer.HTTPServer(('localhost', AUTH_SERVER_PORT), CustomHandler)
+        print 'Started Authentication Server'
         httpd.serve_forever()
     except:
         httpd.socket.close()
