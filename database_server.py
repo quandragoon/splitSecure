@@ -72,8 +72,9 @@ class CustomHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         if submit_type == 'Login':
             difference = handle_login(username, value, SERVER_ID)
             print 'Login ', username, ': Value = ', value, ', Difference = ', difference
+            loginID = args.get('loginID', None)[0]
             if difference:
-                self.send_difference(username, difference)
+                self.send_difference(username, difference, loginID)
 
         elif submit_type == 'Register':
             print 'Registered ', username, ' Value = ', value
@@ -94,13 +95,14 @@ class CustomHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         conn.request("POST", "/auth-server",
                      params, headers)
 
-    def send_difference(self, username, difference):
+    def send_difference(self, username, difference, loginID):
 
         params = urllib.urlencode({
             'submit': 'DBlogin',
             'serverID': SERVER_ID,
             'username': username,
             'difference': difference,
+            'loginID': loginID
         })
         headers = {"Content-type": "application/x-www-form-urlencoded",
                    "Accept": "text/plain"}

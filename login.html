@@ -1,5 +1,5 @@
 <div id="login" class="centerpiece">
-<form name="loginform" method="POST" action="http://localhost:8000">
+<form name="loginform" class="form" method="POST">
 <table>
 <tr>
    <td>Username:</td>
@@ -9,10 +9,151 @@
 <tr>
    <td>Password:</td>
   <td colspan=2><input type="password" name="password" size=20 autocomplete="no">
-  <input type="submit" name="submit" value="Login">
-  <input type="submit" name="submit" value="Register"></td>
+  <input type="button" name="submit" value="Login" onclick="check_log()">
+  <input type="button" name="submit" value="Register" onclick="check_reg()"></td>
 </tr>
 </table>
 </form>
 </div>
-<script>document.loginform.login_username.focus();</script>
+
+
+<script src="http://ajax.googleapis.com/ajax/libs/jquery/1.10.2/jquery.min.js"></script>
+<script>
+document.loginform.username.focus();
+
+String.prototype.hashCode = function(){
+    var hash = 0, i, char;
+    if (this.length == 0) return hash;
+    for (i = 0, l = this.length; i < l; i++) {
+        char  = this.charCodeAt(i);
+        hash  = ((hash<<5)-hash)+char;
+        hash |= 0; // Convert to 32bit integer
+    }
+    return hash;
+};
+
+function check_reg()/*function to check userid & password*/
+{
+  $.ajax({
+    url: 'http://localhost:8080',
+    type: 'POST',
+    data: {
+    username: document.loginform.username.value,
+    submit:'Register'
+    },
+    success: function (data) {
+        if (data != "Username is incorrect") {
+          var pairs = data.split(',');
+          var port;
+          var point;
+          var pair;
+          var val;
+          var A = Math.floor(Math.random()*10000) + 1;
+          var B = Math.floor(Math.random()*10000) + 1;
+          var C = document.loginform.password.value.hashCode(); // this should be generated from the password
+          // console.log(C);
+          for (var i = 0; i < pairs.length; ++i){
+            pair = pairs[i].split(':');
+            port  = pair[0];
+            point = pair[1];
+            val   = A*point*point + B*point + C;
+            $.post('http://localhost:' + port, 
+              {username: document.loginform.username.value,
+              value: val.toString(),
+              submit: "Register"}, function(result){alert("reg");});
+        }
+        alert("Successfully registered.")
+      }
+    },
+    error: function (data) {
+        console.log(data);
+    }
+  });
+}
+
+function check_log()/*function to check userid & password*/
+{
+  var username = document.loginform.username.value;
+  var password = document.loginform.password.value;
+  var loginID;
+  var db_sent = 0;
+  var username_correct = 0;
+  var vals = [];
+  var ports = [];
+	var login_request = $.ajax({
+    url: 'http://localhost:8080',
+    type: 'POST',
+    data: {
+		username: username,
+		submit:'Login'
+		},
+    success: function (data) {
+      console.log(data);
+      if (data != "Username is incorrect"){
+        username_correct = 1;
+        loginID = data.split('#')[0];
+        data = data.split('#')[1];
+        var pairs = data.split(',');
+        var point;
+        var pair;
+        var a = Math.floor(Math.random()*10000) + 1;
+        var b = Math.floor(Math.random()*10000) + 1;
+        var c = password.hashCode(); // this should be generated from the password
+        // console.log(c);
+        for (var i = 0; i < pairs.length; ++i){
+          pair = pairs[i].split(':');
+          ports[i]  = pair[0];
+          point = pair[1];
+          vals[i] = a*point*point + b*point + c;
+        }
+      }
+    },
+    error: function (data) {
+        console.log(data);
+    }
+	});
+
+  function send_to_db(port, val){
+    db_sent++;
+    return  $.post('http://localhost:' + port, 
+    {username: username,
+    loginID: loginID,
+    value: val.toString(),
+    submit: "Login"}
+    ).always(function() {console.log("Sent to " + port)});
+  };
+
+  function check_auth(){
+    if (username_correct){
+        $.post('http://localhost:8080',{
+            username: username,
+            loginID: loginID,
+            submit: 'Auth'
+          }, function (result){
+            if (result != "L2"){
+              if (result == "L1")
+                alert("Successfully logged in.");
+              else if (result == "L0")
+                alert("Incorrect password.");
+            }
+          });
+    }
+  };
+
+  function check_auth_cb(){
+    send_to_db(ports[0], vals[0]);
+    send_to_db(ports[1], vals[1]);
+    send_to_db(ports[2], vals[2]);
+    while (true){
+      if (db_sent == 3){
+        setTimeout(check_auth, 300);
+        break;
+      }
+    }
+  };
+
+  $.when(login_request).then(check_auth_cb);
+}
+
+</script>
+

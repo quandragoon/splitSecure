@@ -21,6 +21,14 @@ DATABASE_SERVERS = [
 LOGIN = 0
 REGISTER = 1
 
+FAIL = 0
+PASS = 1
+PENDING = 2
+
+
+# map loginID to confirmation 
+login_confirm = {}
+
 # Mapping from username to db servers from which the auth server is
 # awaiting a response
 pending_registration_requests = {}
@@ -184,7 +192,13 @@ def check_pending_login(username):
 class CustomHandler(BaseHTTPServer.BaseHTTPRequestHandler):
 
     def do_GET(self):
-        pass
+        self.send_response(200)
+        self.send_header("Content-type", "text/html")
+        self.end_headers() 
+        f = open("login.html", "r")
+        content = f.read()
+        self.wfile.write(content)
+        f.close()	
 
     def do_POST(self):
         content_len = int(self.headers.getheader('content-length'))
@@ -194,7 +208,8 @@ class CustomHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         try:
             username = args.get('username', None)[0]
             submit_type = args.get('submit', None)[0]
-        except:
+        except Exception as e:
+	    print e
             self.send_post_response("Username is incorrect")
             return
 
@@ -202,6 +217,9 @@ class CustomHandler(BaseHTTPServer.BaseHTTPRequestHandler):
             self.do_LOGIN(username)
         elif submit_type == 'Register':
             self.do_REGISTER(username)
+        elif submit_type == 'Auth':
+            loginID = args.get('loginID', None)[0]
+            self.do_AUTH(username, loginID)
         elif submit_type == 'DBregister':
             try:
                 serverID = args.get('serverID', None)[0]
@@ -212,7 +230,8 @@ class CustomHandler(BaseHTTPServer.BaseHTTPRequestHandler):
             try:
                 serverID = args.get('serverID', None)[0]
                 difference = int(args.get('difference', None)[0])
-                self.verify_login(serverID, username, difference)
+                loginID = args.get('loginID', None)[0]
+                self.verify_login(serverID, username, difference, loginID)
             except:
                 pass
 
@@ -224,7 +243,9 @@ class CustomHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         registration_servers = login(username)
         insert_pending_login(username, registration_servers)
         if registration_servers:
-            self.send_post_response(registration_servers)
+	    loginID = username + str(random.randint(0, 1000000))
+            login_confirm[loginID] = PENDING
+            self.send_post_response(loginID+'#'+registration_servers)
         else:
             self.send_post_response("Username is incorrect")
 
@@ -237,6 +258,21 @@ class CustomHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         else:
             self.send_post_response("Username is incorrect")
 
+    def do_AUTH(self, username, loginID):
+        key = loginID
+        if key in login_confirm.keys():
+            if login_confirm[key] == PASS:
+                self.send_post_response("L1")
+                del login_confirm[key]
+                #TODO: send cookie to user
+            elif login_confirm[key] == PENDING:
+                self.send_post_response("L2")
+            else:
+                self.send_post_response("L0")
+                del login_confirm[key]
+        else:
+            self.send_post_response("Invalid loginID") 
+
     def verify_registration(self, serverID, username):
         print serverID, ': Registered ', username
         if check_pending_registration(username):
@@ -245,7 +281,7 @@ class CustomHandler(BaseHTTPServer.BaseHTTPRequestHandler):
                 print username, ': Registration Successful'
                 # TODO: Notify client of successful registration
 
-    def verify_login(self, serverID, username, difference):
+    def verify_login(self, serverID, username, difference, loginID):
         print serverID, ': Login ', username, ' - Difference = ', difference
         if check_pending_login(username):
             update_pending_login(username, serverID, difference)
@@ -253,10 +289,10 @@ class CustomHandler(BaseHTTPServer.BaseHTTPRequestHandler):
                 print username, ': Received all responses'
                 if verify_password(username):
                     print username, ': Login Successful'
-                    # TODO: Notify client of successful login
+                    login_confirm[loginID] = PASS
                 else:
                     print username, ': Login Failed'
-                    # TODO: Notify client of login failure
+                    login_confirm[loginID] = FAIL
 
     def send_post_response(self, message):
         self.send_response(200)
