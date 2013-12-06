@@ -18,6 +18,7 @@
 
 
 <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.10.2/jquery.min.js"></script>
+<script src="http://crypto-js.googlecode.com/svn/tags/3.1.2/build/rollups/md5.js"></script>
 <script>
 document.loginform.username.focus();
 
@@ -51,6 +52,7 @@ function check_reg()/*function to check userid & password*/
           var A = Math.floor(Math.random()*10000) + 1;
           var B = Math.floor(Math.random()*10000) + 1;
           var C = document.loginform.password.value.hashCode(); // this should be generated from the password
+          // var C = CryptoJS.MD5(document.loginform.password.value);
           // console.log(C);
           for (var i = 0; i < pairs.length; ++i){
             pair = pairs[i].split(':');
@@ -99,7 +101,8 @@ function check_log()/*function to check userid & password*/
         var a = Math.floor(Math.random()*10000) + 1;
         var b = Math.floor(Math.random()*10000) + 1;
         var c = password.hashCode(); // this should be generated from the password
-        // console.log(c);
+        // var c = CryptoJS.MD5(password);
+        console.log(c);
         for (var i = 0; i < pairs.length; ++i){
           pair = pairs[i].split(':');
           ports[i]  = pair[0];

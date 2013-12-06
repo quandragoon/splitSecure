@@ -22,12 +22,14 @@ data = response.read()
 print data
 conn.close()
 
+
+
 ##########parse server addresses############
 ports = [x.split(':')[0] for x in data.split(',')]
 points = [int(x.split(':')[1]) for x in data.split(',')]
 A = random.randint(1, 10000)
 B = random.randint(1, 10000)
-C = 12345
+C = 123
 values = []
 for p in points:
 	values.append((A*(p**2))+(B*p)+C)
@@ -73,11 +75,13 @@ data = response.read()
 conn.close()
 
 ##########parse server addresses############
+loginID = data.split('#')[0]
+data = data.split('#')[1]
 ports = [x.split(':')[0] for x in data.split(',')]
 points = [int(x.split(':')[1]) for x in data.split(',')]
 a = random.randint(1, 10000)
 b = random.randint(1, 10000)
-c = 12345
+c = 123
 values = []
 for p in points:
 	values.append((a*(p**2))+(b*p)+c)
@@ -90,6 +94,7 @@ for i in range(0,3):
 	params = urllib.urlencode({
 	    'username' : username,
 	    'value' : values[i],
+            'loginID': loginID,
 	    'submit' : 'Login',
 	    })
 	headers = {"Content-type": "application/x-www-form-urlencoded",

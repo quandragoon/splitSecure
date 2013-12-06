@@ -177,8 +177,8 @@ def verify_password(username):
 
 
 def solve_linear_equation(a1, b1, c1, a2, b2, c2):
-    x = (b1 * c2 - b2 * c1) / (a2 * b1 - b2 * a1)
-    y = (a1 * c2 - a2 * c1) / (a1 * b2 - a2 * b1)
+    x = float(b1 * c2 - b2 * c1) / (a2 * b1 - b2 * a1)
+    y = float(a1 * c2 - a2 * c1) / (a1 * b2 - a2 * b1)
     return (x, y)
 
 
