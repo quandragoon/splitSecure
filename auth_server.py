@@ -161,7 +161,7 @@ def login(username):
 
 def insert_pending_login(username, compressed_mapping):
     mapping = [[[x.split(':')[0], int(x.split(':')[1]), None]
-                for x in compressed_mapping.split(',')], len(DATABASE_SERVERS)]
+                for x in compressed_mapping.split(',')], NUM_DATABASE_SERVERS_AUTH]
     pending_login_requests[username] = mapping
 
 

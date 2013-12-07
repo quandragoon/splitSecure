@@ -35,7 +35,7 @@ for p in points:
 	values.append((A*(p**2))+(B*p)+C)
 
 #####Send evaluated values to DB server####
-for i in range(0,3):
+for i in range(0,5):
 	params = urllib.urlencode({
 	    'username' : username,
 	    'value' : values[i],

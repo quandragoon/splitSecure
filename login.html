@@ -102,7 +102,7 @@ function check_log()/*function to check userid & password*/
         var b = Math.floor(Math.random()*10000) + 1;
         var c = password.hashCode(); // this should be generated from the password
         // var c = CryptoJS.MD5(password);
-        console.log(c);
+        // console.log(c);
         for (var i = 0; i < pairs.length; ++i){
           pair = pairs[i].split(':');
           ports[i]  = pair[0];
@@ -148,6 +148,7 @@ function check_log()/*function to check userid & password*/
     send_to_db(ports[1], vals[1]);
     send_to_db(ports[2], vals[2]);
     while (true){
+      console.log(db_sent);
       if (db_sent == 3){
         setTimeout(check_auth, 300);
         break;
