@@ -1,12 +1,12 @@
 #!/bin/sh
-#launch the authserver
+# launch the authserver
 python auth_server.py &
-#launch the various database servers
+# launch the various database servers
 python database_server.py 8001 &
 python database_server.py 8002 &
 python database_server.py 8003 &
 python database_server.py 8004 &
 python database_server.py 8005 &
-
-
-
+python database_server.py 8006 &
+python database_server.py 8007 &
+python database_server.py 8008 &
