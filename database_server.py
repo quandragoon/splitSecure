@@ -7,10 +7,13 @@ import BaseHTTPServer
 import urlparse
 import urllib
 import httplib
+import encryption
 
 AUTH_SERVER_HOST = 'localhost'
 AUTH_SERVER_PORT = '8080'
 SERVER_ID = 8001  # This is set during server initialization
+
+AES = encryption.AESCipher()
 
 
 def get_polynomial_value(username, server_id):
@@ -62,6 +65,14 @@ class CustomHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         args = urlparse.parse_qs(post_body)
 
         try:
+            key = AES.decrypt(args.get('key', None)[0])
+            AES.set_key(key)
+            print "Renewed Key: ", key
+            return
+        except:
+            pass
+
+        try:
             username = args.get('username', None)[0]
             submit_type = args.get('submit', None)[0]
             value = int(args.get('value', None)[0])
@@ -79,14 +90,14 @@ class CustomHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         elif submit_type == 'Register':
             print 'Registered ', username, ' Value = ', value
             if handle_registration(username, value, SERVER_ID):
-                self.notify_registration(username)
+                self.notify_registration(username) 
         return
 
     def notify_registration(self, username):
         params = urllib.urlencode({
             'submit': 'DBregister',
-            'serverID': SERVER_ID,
-            'username': username,
+            'serverID': AES.encrypt(str(SERVER_ID)),
+            'username': AES.encrypt(username),
         })
         headers = {"Content-type": "application/x-www-form-urlencoded",
                    "Accept": "text/plain"}
@@ -99,10 +110,10 @@ class CustomHandler(BaseHTTPServer.BaseHTTPRequestHandler):
 
         params = urllib.urlencode({
             'submit': 'DBlogin',
-            'serverID': SERVER_ID,
-            'username': username,
-            'difference': difference,
-            'loginID': loginID
+            'serverID': AES.encrypt(str(SERVER_ID)),
+            'username': AES.encrypt(username),
+            'difference': AES.encrypt(str(difference)),
+            'loginID': AES.encrypt(loginID)
         })
         headers = {"Content-type": "application/x-www-form-urlencoded",
                    "Accept": "text/plain"}

@@ -5,6 +5,13 @@ import BaseHTTPServer
 
 import random
 import urlparse
+from Crypto.Cipher import AES
+import encryption
+import threading, time
+import urllib, httplib
+
+AES = encryption.AESCipher()
+KEY_LIFE = 60
 
 NUM_DATABASE_SERVERS = 3
 POOL_SIZE = 5
@@ -33,6 +40,8 @@ login_confirm = {}
 # awaiting a response
 pending_registration_requests = {}
 pending_login_requests = {}
+
+httpd = None
 
 
 """
@@ -205,32 +214,31 @@ class CustomHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         post_body = self.rfile.read(content_len)
         args = urlparse.parse_qs(post_body)
 
-        try:
-            username = args.get('username', None)[0]
-            submit_type = args.get('submit', None)[0]
-        except Exception as e:
-	    print e
-            self.send_post_response("Username is incorrect")
-            return
+        submit_type = args.get('submit', None)[0]
 
         if submit_type == 'Login':
+            username = args.get('username', None)[0]
             self.do_LOGIN(username)
         elif submit_type == 'Register':
+            username = args.get('username', None)[0]
             self.do_REGISTER(username)
         elif submit_type == 'Auth':
+            username = args.get('username', None)[0]
             loginID = args.get('loginID', None)[0]
             self.do_AUTH(username, loginID)
         elif submit_type == 'DBregister':
             try:
-                serverID = args.get('serverID', None)[0]
+                username = AES.decrypt(args.get('username', None)[0])
+                serverID = AES.decrypt(args.get('serverID', None)[0])
                 self.verify_registration(serverID, username)
             except:
                 pass
         elif submit_type == 'DBlogin':
             try:
-                serverID = args.get('serverID', None)[0]
-                difference = int(args.get('difference', None)[0])
-                loginID = args.get('loginID', None)[0]
+                username = AES.decrypt(args.get('username', None)[0])
+                serverID = AES.decrypt(args.get('serverID', None)[0])
+                difference = int(AES.decrypt(args.get('difference', None)[0]))
+                loginID = AES.decrypt(args.get('loginID', None)[0])
                 self.verify_login(serverID, username, difference, loginID)
             except:
                 pass
@@ -302,11 +310,38 @@ class CustomHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         print 'Sent Response: ', message
 
 
+def renew_key():
+    threading.Timer(KEY_LIFE, renew_key).start()
+    if httpd == None:
+        return
+
+    key = AES.new_key()
+    params = urllib.urlencode({
+        'key': AES.encrypt(str(key)),
+    })
+    headers = {"Content-type": "application/x-www-form-urlencoded",
+               "Accept": "text/plain"}
+    try:
+        for x in DATABASE_SERVERS:
+            conn = httplib.HTTPConnection('localhost:' + x)
+            conn.request("POST", "/auth-server",
+                         params, headers)
+    except:
+        print "Error Distributing Key"
+        return
+
+    print "Distributed Key: ", key
+    AES.set_key(key)
+    
+
+    
 if __name__ == '__main__':
     try:
+        renew_key()
         httpd = BaseHTTPServer.HTTPServer(
             ('localhost', AUTH_SERVER_PORT), CustomHandler)
         print 'Started Authentication Server'
+
         httpd.serve_forever()
     except:
         httpd.socket.close()
