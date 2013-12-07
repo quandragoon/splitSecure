@@ -90,7 +90,7 @@ class CustomHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         elif submit_type == 'Register':
             print 'Registered ', username, ' Value = ', value
             if handle_registration(username, value, SERVER_ID):
-                self.notify_registration(username) 
+                self.notify_registration(username)
         return
 
     def notify_registration(self, username):
