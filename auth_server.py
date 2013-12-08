@@ -9,6 +9,8 @@ import encryption
 import threading
 import urllib
 import httplib
+import registration
+import authentication
 
 AES = encryption.AESCipher()
 KEY_LIFE = 60
@@ -39,10 +41,8 @@ PENDING = 2
 # map loginID to confirmation
 login_confirm = {}
 
-# Mapping from username to db servers from which the auth server is
-# awaiting a response
-pending_registration_requests = {}
-pending_login_requests = {}
+REGISTRATION = registration.Registration(NUM_DATABASE_SERVERS_REG)
+AUTHENTICATION = authentication.Authentication(NUM_DATABASE_SERVERS_AUTH)
 
 httpd = None
 
@@ -94,7 +94,7 @@ def get_database_servers(username, is_registration=False):
 
     if (is_registration and not mapping):
         servers = get_random_database_servers_and_points_registration()
-        insert_pending_registration(username, servers)
+        REGISTRATION.insert_pending_registration(username, servers)
         compressed_mapping = ['%s:%s' % (x[0], str(x[1])) for x in servers]
         compressed_mapping = ','.join(compressed_mapping)
 
@@ -130,89 +130,13 @@ def register(username):
     return get_database_servers(username, is_registration=True)
 
 
-def insert_pending_registration(username, servers):
-    pending_registration_requests[username] = []
-    for x in servers:
-        pending_registration_requests[username].append(x[0])
-
-
-def update_pending_registration(username, serverID):
-    try:
-        pending_registration_requests[username].remove(serverID)
-    except:
-        pass
-    if len(pending_registration_requests[username]) == 0:
-        pending_registration_requests.pop(username)
-
-
-def check_pending_registration(username):
-    if username in pending_registration_requests:
-        return True
-    return False
-
 
 def login(username):
     compressed_mapping = get_database_servers(username, is_registration=False)
     if not compressed_mapping:
         return None
-    insert_pending_login(username, compressed_mapping)
+    AUTHENTICATION.insert_pending_login(username, compressed_mapping)
     return compressed_mapping
-
-
-def insert_pending_login(username, compressed_mapping):
-    mapping = [[[x.split(':')[0], int(x.split(':')[1]), None]
-                for x in compressed_mapping.split(',')], NUM_DATABASE_SERVERS_AUTH]
-    pending_login_requests[username] = mapping
-
-
-def update_pending_login(username, serverID, difference):
-    for i in range(0, len(pending_login_requests[username][0])):
-        x = pending_login_requests[username][0][i]
-        if x[0] == serverID and x[2] is None:
-            pending_login_requests[username][0][i][2] = difference
-            pending_login_requests[username][1] -= 1
-            break
-
-
-def delete_pending_login(username):
-    pending_login_requests.pop(username)
-
-
-def verify_password(username):
-    data = pending_login_requests[username][0]
-    print data
-    a1 = data[0][1] ** 2
-    b1 = data[0][1]
-    c1 = data[0][2] * -1
-
-    a2 = data[1][1] ** 2
-    b2 = data[1][1]
-    c2 = data[1][2] * -1
-
-    a3 = data[2][1] ** 2
-    b3 = data[2][1]
-    c3 = data[2][2] * -1
-    delete_pending_login(username)
-    sol1 = solve_linear_equation(a1, b1, c1, a2, b2, c2)
-    sol2 = solve_linear_equation(a3, b3, c3, a2, b2, c2)
-    print sol1, '   ', sol2
-
-    if sol1[0] == sol2[0] and sol1[1] == sol2[1]:
-        return True
-    return False
-
-
-def solve_linear_equation(a1, b1, c1, a2, b2, c2):
-    x = float(b1 * c2 - b2 * c1) / (a2 * b1 - b2 * a1)
-    y = float(a1 * c2 - a2 * c1) / (a1 * b2 - a2 * b1)
-    return (x, y)
-
-
-def check_pending_login(username):
-    if username in pending_login_requests:
-        if pending_login_requests[username][1] > 0:
-            return True
-    return False
 
 
 class CustomHandler(BaseHTTPServer.BaseHTTPRequestHandler):
@@ -268,7 +192,7 @@ class CustomHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         registration_servers = login(username)
         if not registration_servers:
             return
-        insert_pending_login(username, registration_servers)
+        AUTHENTICATION.insert_pending_login(username, registration_servers)
         if registration_servers:
             loginID = username + str(random.randint(0, 1000000))
             login_confirm[loginID] = PENDING
@@ -302,19 +226,19 @@ class CustomHandler(BaseHTTPServer.BaseHTTPRequestHandler):
 
     def verify_registration(self, serverID, username):
         print serverID, ': Registered ', username
-        if check_pending_registration(username):
-            update_pending_registration(username, serverID)
-            if(not check_pending_registration(username)):
+        if REGISTRATION.check_pending_registration(username):
+            REGISTRATION.update_pending_registration(username, serverID)
+            if(not REGISTRATION.check_pending_registration(username)):
                 print username, ': Registration Successful'
                 # TODO: Notify client of successful registration
 
     def verify_login(self, serverID, username, difference, loginID):
         print serverID, ': Login ', username, ' - Difference = ', difference
-        if check_pending_login(username):
-            update_pending_login(username, serverID, difference)
-            if(not check_pending_login(username)):
+        if AUTHENTICATION.check_pending_login(username):
+            AUTHENTICATION.update_pending_login(username, serverID, difference)
+            if(not AUTHENTICATION.check_pending_login(username)):
                 print username, ': Received all responses'
-                if verify_password(username):
+                if AUTHENTICATION.verify_password(username):
                     print username, ': Login Successful'
                     login_confirm[loginID] = PASS
                 else:
@@ -345,8 +269,8 @@ def renew_key():
             conn = httplib.HTTPConnection('localhost:' + x)
             conn.request("POST", "/auth-server",
                          params, headers)
-    except:
-        print "Error Distributing Key"
+    except Exception as e:
+        print "Error Distributing Key: ", e
         return
 
     print "Distributed Key: ", key

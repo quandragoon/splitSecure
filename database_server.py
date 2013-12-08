@@ -122,6 +122,12 @@ class CustomHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         conn.request("POST", "/auth-server",
                      params, headers)
 
+    def send_post_response(self, message):
+        self.send_response(200)
+        self.send_header("Content-type", "text/plain")
+        self.end_headers()
+        self.wfile.write(message)
+        print 'Sent Response: ', message
 
 if __name__ == '__main__':
     SERVER_ID = int(sys.argv[1])
