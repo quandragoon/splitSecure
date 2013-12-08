@@ -79,7 +79,7 @@ def get_random_database_servers_and_points_auth(mapping):
     priorities = []
     sum_priorities = 0
     for x in uncompressed_mapping:
-        (database_server, random_int) = x.split(':')
+        (database_server, _) = x.split(':')
         index = DATABASE_SERVERS.index(database_server)
         priorities.append(DATABASE_PRIORITIES[index])
         sum_priorities += priorities[-1]
@@ -257,7 +257,7 @@ class CustomHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
             self.send_post_response("Invalid loginID")
 
     def verify_registration(self, serverID, username):
-        # print serverID, ': Registered ', username
+        print serverID, ': Registered ', username
         if REGISTRATION.check_pending_registration(username):
             REGISTRATION.update_pending_registration(username, serverID)
             if(not REGISTRATION.check_pending_registration(username)):
