@@ -32,6 +32,8 @@ DATABASE_SERVERS = [
     '8008',
 ]
 
+DATABASE_PRIORITIES = []
+
 LOGIN = 0
 REGISTER = 1
 
@@ -74,13 +76,34 @@ def get_random_database_servers_and_points_auth(mapping):
     uncompressed_mapping = mapping.split(',')
     auth_database_servers = []
     indices = []
+    priorities = []
+    sum_priorities = 0
+    for x in uncompressed_mapping:
+        (database_server, random_int) = x.split(':')
+        index = DATABASE_SERVERS.index(database_server)
+        priorities.append(DATABASE_PRIORITIES[index])
+        sum_priorities += priorities[-1]
+    priorities = [priority / sum_priorities for priority in priorities]
+
     while (len(auth_database_servers) < NUM_DATABASE_SERVERS_AUTH):
-        index = int(random.random() * len(uncompressed_mapping))
+        random_server = random.random()
+        index = -1
+        while (random_server > 0):
+            random_server -= priorities[index]
+            index += 1
         if index not in indices:
             indices.append(index)
             auth_database_servers.append(uncompressed_mapping[index])
     recompressed_mapping = ','.join(auth_database_servers)
     return recompressed_mapping
+
+
+def init_priorities():
+    n = len(DATABASE_SERVERS)
+    print "Initializing priorities..."
+    for i in xrange(n):
+        DATABASE_PRIORITIES.append(1.0)
+
 
 """
 Returns a list of database servers, given a username.
@@ -110,8 +133,10 @@ def get_database_servers(username, is_registration=False):
         return compressed_mapping
     elif (mapping and not is_registration):
         compressed_mapping = mapping.databases
-        print get_random_database_servers_and_points_auth(compressed_mapping)
-        return get_random_database_servers_and_points_auth(compressed_mapping)
+        auth_servers_and_points = get_random_database_servers_and_points_auth(
+            compressed_mapping)
+        print auth_servers_and_points
+        return auth_servers_and_points
 
     return None
 
@@ -136,7 +161,6 @@ def login(username):
     compressed_mapping = get_database_servers(username, is_registration=False)
     if not compressed_mapping:
         return None
-    AUTHENTICATION.insert_pending_login(username, compressed_mapping)
     return compressed_mapping
 
 
@@ -194,6 +218,13 @@ class CustomHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
         if not registration_servers:
             return
         AUTHENTICATION.insert_pending_login(username, registration_servers)
+        for x in registration_servers.split(','):
+            (database_server, _) = x.split(':')
+            print '%s\'s priority being updated' % database_server
+            index = DATABASE_SERVERS.index(database_server)
+            DATABASE_PRIORITIES[index] = 1.0 / \
+                ((1.0 / DATABASE_PRIORITIES[index]) + 1.0)
+
         if registration_servers:
             loginID = username + str(random.randint(0, 1000000))
             login_confirm[loginID] = PENDING
@@ -226,17 +257,21 @@ class CustomHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
             self.send_post_response("Invalid loginID")
 
     def verify_registration(self, serverID, username):
-        print serverID, ': Registered ', username
+        # print serverID, ': Registered ', username
         if REGISTRATION.check_pending_registration(username):
             REGISTRATION.update_pending_registration(username, serverID)
             if(not REGISTRATION.check_pending_registration(username)):
                 print username, ': Registration Successful'
                 # TODO: Notify client of successful registration
+                pass
 
     def verify_login(self, serverID, username, difference, loginID):
         print serverID, ': Login ', username, ' - Difference = ', difference
         if AUTHENTICATION.check_pending_login(username):
             AUTHENTICATION.update_pending_login(username, serverID, difference)
+            index = DATABASE_SERVERS.index(serverID)
+            DATABASE_PRIORITIES[index] = 1.0 / \
+               ((1.0 / DATABASE_PRIORITIES[index]) - 1.0)
             if(not AUTHENTICATION.check_pending_login(username)):
                 print username, ': Received all responses'
                 if AUTHENTICATION.verify_password(username):
@@ -281,6 +316,7 @@ def renew_key():
 if __name__ == '__main__':
     try:
         renew_key()
+        init_priorities()
         httpd = BaseHTTPServer.HTTPServer(
             ('localhost', AUTH_SERVER_PORT), CustomHandler)
         httpd.socket = ssl.wrap_socket(
