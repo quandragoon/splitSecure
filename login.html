@@ -17,8 +17,8 @@
 </div>
 
 
-<script src="http://ajax.googleapis.com/ajax/libs/jquery/1.10.2/jquery.min.js"></script>
-<script src="http://crypto-js.googlecode.com/svn/tags/3.1.2/build/rollups/md5.js"></script>
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.10.2/jquery.min.js"></script>
+<script src="https://crypto-js.googlecode.com/svn/tags/3.1.2/build/rollups/md5.js"></script>
 <script>
 document.loginform.username.focus();
 
@@ -36,7 +36,7 @@ String.prototype.hashCode = function(){
 function check_reg()/*function to check userid & password*/
 {
   $.ajax({
-    url: 'http://localhost:8080',
+    url: 'https://localhost:8080',
     type: 'POST',
     data: {
     username: document.loginform.username.value,
@@ -59,7 +59,7 @@ function check_reg()/*function to check userid & password*/
             port  = pair[0];
             point = pair[1];
             val   = A*point*point + B*point + C;
-            $.post('http://localhost:' + port, 
+            $.post('https://localhost:' + port, 
               {username: document.loginform.username.value,
               value: val.toString(),
               submit: "Register"}, function(result){alert("reg");});
@@ -83,7 +83,7 @@ function check_log()/*function to check userid & password*/
   var vals = [];
   var ports = [];
 	var login_request = $.ajax({
-    url: 'http://localhost:8080',
+    url: 'https://localhost:8080',
     type: 'POST',
     data: {
 		username: username,
@@ -118,7 +118,7 @@ function check_log()/*function to check userid & password*/
 
   function send_to_db(port, val){
     db_sent++;
-    return  $.post('http://localhost:' + port, 
+    return  $.post('https://localhost:' + port, 
     {username: username,
     loginID: loginID,
     value: val.toString(),
@@ -128,7 +128,7 @@ function check_log()/*function to check userid & password*/
 
   function check_auth(){
     if (username_correct){
-        $.post('http://localhost:8080',{
+        $.post('https://localhost:8080',{
             username: username,
             loginID: loginID,
             submit: 'Auth'

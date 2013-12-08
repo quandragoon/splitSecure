@@ -13,7 +13,7 @@ params = urllib.urlencode({
     })
 headers = {"Content-type": "application/x-www-form-urlencoded",
            "Accept": "text/plain"}
-conn = httplib.HTTPConnection("localhost:8080")
+conn = httplib.HTTPConnection("http://localhost:8080")
 conn.request("POST", "/auth-server",
              params, headers)
 print "Sent registration request to authentication sever"
@@ -66,7 +66,7 @@ params = urllib.urlencode({
     })
 headers = {"Content-type": "application/x-www-form-urlencoded",
            "Accept": "text/plain"}
-conn = httplib.HTTPConnection("localhost:8080")
+conn = httplib.HTTPConnection("http://localhost:8080")
 conn.request("POST", "/auth-server",
              params, headers)
 print "Sent login request to authentication sever"

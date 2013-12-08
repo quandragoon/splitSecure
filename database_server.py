@@ -2,12 +2,13 @@
 
 import db
 import sys
-import BaseHTTPServer
+import BaseHTTPServer, SimpleHTTPServer
 
 import urlparse
 import urllib
 import httplib
 import encryption
+import ssl
 
 AUTH_SERVER_HOST = 'localhost'
 AUTH_SERVER_PORT = '8080'
@@ -54,7 +55,7 @@ def handle_login(username, entered_polynomial_value, server_id):
         return difference
 
 
-class CustomHandler(BaseHTTPServer.BaseHTTPRequestHandler):
+class CustomHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
 
     def do_GET(self):
         pass
@@ -77,7 +78,6 @@ class CustomHandler(BaseHTTPServer.BaseHTTPRequestHandler):
             submit_type = args.get('submit', None)[0]
             value = int(args.get('value', None)[0])
         except:
-            self.send_post_response("Username or Password is incorrect")
             return
 
         if submit_type == 'Login':
@@ -101,7 +101,7 @@ class CustomHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         })
         headers = {"Content-type": "application/x-www-form-urlencoded",
                    "Accept": "text/plain"}
-        conn = httplib.HTTPConnection(
+        conn = httplib.HTTPSConnection(
             AUTH_SERVER_HOST + ':' + AUTH_SERVER_PORT)
         conn.request("POST", "/auth-server",
                      params, headers)
@@ -117,7 +117,7 @@ class CustomHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         })
         headers = {"Content-type": "application/x-www-form-urlencoded",
                    "Accept": "text/plain"}
-        conn = httplib.HTTPConnection(
+        conn = httplib.HTTPSConnection(
             AUTH_SERVER_HOST + ':' + AUTH_SERVER_PORT)
         conn.request("POST", "/auth-server",
                      params, headers)
@@ -134,6 +134,7 @@ if __name__ == '__main__':
     try:
         httpd = BaseHTTPServer.HTTPServer(
             ('localhost', SERVER_ID), CustomHandler)
+        httpd.socket = ssl.wrap_socket (httpd.socket, keyfile='server.pem', certfile='server.pem', server_side=True)
         print 'Started Database Server ', SERVER_ID
         httpd.serve_forever()
     except:

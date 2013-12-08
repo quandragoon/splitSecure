@@ -1,7 +1,7 @@
 #!/usr/local/bin/python
 
 import db
-import BaseHTTPServer
+import BaseHTTPServer, SimpleHTTPServer
 
 import random
 import urlparse
@@ -11,6 +11,7 @@ import urllib
 import httplib
 import registration
 import authentication
+import ssl
 
 AES = encryption.AESCipher()
 KEY_LIFE = 60
@@ -139,7 +140,63 @@ def login(username):
     return compressed_mapping
 
 
-class CustomHandler(BaseHTTPServer.BaseHTTPRequestHandler):
+def insert_pending_login(username, compressed_mapping):
+    mapping = [[[x.split(':')[0], int(x.split(':')[1]), None]
+                for x in compressed_mapping.split(',')], NUM_DATABASE_SERVERS_AUTH]
+    pending_login_requests[username] = mapping
+
+
+def update_pending_login(username, serverID, difference):
+    for i in range(0, len(pending_login_requests[username][0])):
+        x = pending_login_requests[username][0][i]
+        if x[0] == serverID and x[2] is None:
+            pending_login_requests[username][0][i][2] = difference
+            pending_login_requests[username][1] -= 1
+            break
+
+
+def delete_pending_login(username):
+    pending_login_requests.pop(username)
+
+
+def verify_password(username):
+    data = pending_login_requests[username][0]
+    print data
+    a1 = data[0][1] ** 2
+    b1 = data[0][1]
+    c1 = data[0][2] * -1
+
+    a2 = data[1][1] ** 2
+    b2 = data[1][1]
+    c2 = data[1][2] * -1
+
+    a3 = data[2][1] ** 2
+    b3 = data[2][1]
+    c3 = data[2][2] * -1
+    delete_pending_login(username)
+    sol1 = solve_linear_equation(a1, b1, c1, a2, b2, c2)
+    sol2 = solve_linear_equation(a3, b3, c3, a2, b2, c2)
+    print sol1, '   ', sol2
+
+    if sol1[0] == sol2[0] and sol1[1] == sol2[1]:
+        return True
+    return False
+
+
+def solve_linear_equation(a1, b1, c1, a2, b2, c2):
+    x = float(b1 * c2 - b2 * c1) / (a2 * b1 - b2 * a1)
+    y = float(a1 * c2 - a2 * c1) / (a1 * b2 - a2 * b1)
+    return (x, y)
+
+
+def check_pending_login(username):
+    if username in pending_login_requests:
+        if pending_login_requests[username][1] > 0:
+            return True
+    return False
+
+
+class CustomHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
 
     def do_GET(self):
         self.send_response(200)
@@ -266,7 +323,7 @@ def renew_key():
                "Accept": "text/plain"}
     try:
         for x in DATABASE_SERVERS:
-            conn = httplib.HTTPConnection('localhost:' + x)
+            conn = httplib.HTTPSConnection('localhost:' + x)
             conn.request("POST", "/auth-server",
                          params, headers)
     except Exception as e:
@@ -282,8 +339,8 @@ if __name__ == '__main__':
         renew_key()
         httpd = BaseHTTPServer.HTTPServer(
             ('localhost', AUTH_SERVER_PORT), CustomHandler)
+        httpd.socket = ssl.wrap_socket (httpd.socket, keyfile='server.pem', certfile='server.pem', server_side=True)
         print 'Started Authentication Server'
-
         httpd.serve_forever()
     except:
         httpd.socket.close()
