@@ -53,6 +53,7 @@ def handle_login(username, entered_polynomial_value, server_id):
     if stored_polynomial_value:
         difference = stored_polynomial_value - entered_polynomial_value
         return difference
+    return None
 
 
 class CustomHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):

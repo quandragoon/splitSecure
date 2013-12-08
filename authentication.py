@@ -1,6 +1,8 @@
 #!/usr/local/bin/python
 
+
 class Authentication:
+
     def __init__(self, NUM_DATABASE_SERVERS_AUTH):
         self.pending_login_requests = {}
         self.NUM_DATABASE_SERVERS_AUTH = NUM_DATABASE_SERVERS_AUTH
@@ -10,7 +12,6 @@ class Authentication:
                     for x in compressed_mapping.split(',')], self.NUM_DATABASE_SERVERS_AUTH]
         self.pending_login_requests[username] = mapping
 
-
     def update_pending_login(self, username, serverID, difference):
         for i in range(0, len(self.pending_login_requests[username][0])):
             x = self.pending_login_requests[username][0][i]
@@ -18,7 +19,6 @@ class Authentication:
                 self.pending_login_requests[username][0][i][2] = difference
                 self.pending_login_requests[username][1] -= 1
                 break
-
 
     def delete_pending_login(self, username):
         self.pending_login_requests.pop(username)
@@ -46,12 +46,10 @@ class Authentication:
             return True
         return False
 
-
     def solve_linear_equation(self, a1, b1, c1, a2, b2, c2):
         x = float(b1 * c2 - b2 * c1) / (a2 * b1 - b2 * a1)
         y = float(a1 * c2 - a2 * c1) / (a1 * b2 - a2 * b1)
         return (x, y)
-
 
     def check_pending_login(self, username):
         if username in self.pending_login_requests:
