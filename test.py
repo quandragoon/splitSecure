@@ -13,7 +13,7 @@ params = urllib.urlencode({
     })
 headers = {"Content-type": "application/x-www-form-urlencoded",
            "Accept": "text/plain"}
-conn = httplib.HTTPConnection("http://localhost:8080")
+conn = httplib.HTTPSConnection("localhost:8080")
 conn.request("POST", "/auth-server",
              params, headers)
 print "Sent registration request to authentication sever"
@@ -44,7 +44,7 @@ for i in range(0,5):
 	headers = {"Content-type": "application/x-www-form-urlencoded",
 	           "Accept": "text/plain"}
 	
-	conn = httplib.HTTPConnection("localhost:" + ports[i])
+	conn = httplib.HTTPSConnection("localhost:" + ports[i])
 	conn.request("POST", "/",
 	             params, headers)
 	print 'Sent value ', values[i], ' to database server ', ports[i]
@@ -66,7 +66,7 @@ params = urllib.urlencode({
     })
 headers = {"Content-type": "application/x-www-form-urlencoded",
            "Accept": "text/plain"}
-conn = httplib.HTTPConnection("http://localhost:8080")
+conn = httplib.HTTPSConnection("localhost:8080")
 conn.request("POST", "/auth-server",
              params, headers)
 print "Sent login request to authentication sever"
@@ -100,7 +100,7 @@ for i in range(0,3):
 	headers = {"Content-type": "application/x-www-form-urlencoded",
 	           "Accept": "text/plain"}
 	
-	conn = httplib.HTTPConnection("localhost:" + ports[i])
+	conn = httplib.HTTPSConnection("localhost:" + ports[i])
 	conn.request("POST", "/",
 	             params, headers)
 	print 'Sent value ', values[i], ' to database server ', ports[i]
