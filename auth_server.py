@@ -132,7 +132,6 @@ def renew_key():
         print "Error Distributing Key: ", e
         return
 
-    print "Distributed Key: ", key
     AES.set_key(key)
 
 
@@ -176,13 +175,11 @@ def get_database_servers(username, is_registration=False):
 
         mappingdb.add(new_mapping)
         mappingdb.commit()
-        print compressed_mapping
         return compressed_mapping
     elif (mapping and not is_registration):
         compressed_mapping = mapping.databases
         auth_servers_and_points = get_random_database_servers_and_points_auth(
             compressed_mapping)
-        print auth_servers_and_points
         return auth_servers_and_points
 
     return None
@@ -263,7 +260,6 @@ class CustomHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
         return
 
     def do_LOGIN(self, username):
-        print 'Login Request: ', username
         registration_servers = None
         registration_servers = login(username)
         if not registration_servers:
@@ -271,7 +267,6 @@ class CustomHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
         AUTHENTICATION.insert_pending_login(username, registration_servers)
         for x in registration_servers.split(','):
             (database_server, _) = x.split(':')
-            print '%s\'s priority being updated' % database_server
             index = DATABASE_SERVERS.index(database_server)
             DATABASE_PRIORITIES[index] = 1.0 / \
                 ((1.0 / DATABASE_PRIORITIES[index]) + 1.0)
@@ -287,7 +282,6 @@ class CustomHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
             self.send_post_response("Username is incorrect")
 
     def do_REGISTER(self, username):
-        print 'Registration Request: ', username
         registration_servers = None
         registration_servers = register(username)
         if registration_servers:
@@ -312,7 +306,6 @@ class CustomHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
             self.send_post_response("Invalid loginID")
 
     def verify_registration(self, serverID, username):
-        print serverID, ': Registered ', username
         if REGISTRATION.check_pending_registration(username):
             REGISTRATION.update_pending_registration(username, serverID)
             if(not REGISTRATION.check_pending_registration(username)):
@@ -321,14 +314,12 @@ class CustomHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
                 pass
 
     def verify_login(self, serverID, username, difference, loginID):
-        print serverID, ': Login ', username, ' - Difference = ', difference
         if AUTHENTICATION.check_pending_login(username):
             AUTHENTICATION.update_pending_login(username, serverID, difference)
             index = DATABASE_SERVERS.index(serverID)
             DATABASE_PRIORITIES[index] = 1.0 / \
                 ((1.0 / DATABASE_PRIORITIES[index]) - 1.0)
             if(not AUTHENTICATION.check_pending_login(username)):
-                print username, ': Received all responses'
                 if AUTHENTICATION.verify_password(username):
                     print username, ': Login Successful'
                     login_confirm[loginID] = PASS
@@ -341,7 +332,6 @@ class CustomHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
         self.send_header("Content-type", "text/plain")
         self.end_headers()
         self.wfile.write(message)
-        print 'Sent Response: ', message
 
 
 if __name__ == '__main__':
