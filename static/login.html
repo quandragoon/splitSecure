@@ -143,6 +143,7 @@ function check_reg()/*function to check userid & password*/
             if (result != "R2"){
               if (result == "R1") {
                 setCookie("DistribPassword", username);
+                setCookie("DistribPasswordToken", signature);
                 window.location = "https://localhost:8080/welcome.html";
                 // alert("Successfully registered.");
               }
@@ -235,6 +236,7 @@ function check_log()/*function to check userid & password*/
             if (result != "L2"){
               if (result == "L1") {
                 setCookie("DistribPassword", username);
+                setCookie("DistribPasswordToken", signature);
                 window.location = "https://localhost:8080/welcome.html";
                 // alert("Successfully logged in.");
               }
