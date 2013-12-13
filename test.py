@@ -38,7 +38,7 @@ response = conn.getresponse()
 data = response.read()
 conn.close()
 
-split_data = data.split('#')
+split_data = data.split('#', 1)
 servers = split_data[0]
 signature = split_data[1]
 
@@ -94,9 +94,10 @@ data = response.read()
 conn.close()
 
 # parse server addresses############
-loginID = data.split('#')[0]
-servers = data.split('#')[1]
-signature = data.split('#')[2]
+data_split = data.split('#', 2)
+loginID = data_split[0]
+servers = data_split[1]
+signature = data_split[2]
 
 ports = [x.split(':')[0] for x in servers.split(',')]
 points = [int(x.split(':')[1]) for x in servers.split(',')]
