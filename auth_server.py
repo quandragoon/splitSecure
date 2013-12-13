@@ -231,7 +231,7 @@ class CustomHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
                 distrib_pass_username = cookies[
                     cookie_index + 16: next_semicolon]
             distrib_pass_token_cookie = urllib.unquote(urllib.unquote(distrib_pass_token_cookie))
-        except ValueError:
+        except:
             pass
 
         if distrib_pass_username:
