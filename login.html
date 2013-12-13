@@ -36,7 +36,13 @@ String.prototype.hashCode = function(){
 function check_reg()/*function to check userid & password*/
 {
   var signature;
-  $.ajax({
+  var username = document.loginform.username.value;
+  var vals = [];
+  var ports = [];
+  var db_sent = 0;
+  var username_correct = 0;
+
+  var reg_request = $.ajax({
     url: 'https://localhost:8080',
     type: 'POST',
     data: {
@@ -47,11 +53,10 @@ function check_reg()/*function to check userid & password*/
         signature = data.split('#').slice(1).join('#');
         data = data.split('#')[0];
         if (data != "Username is incorrect") {
+          username_correct = 1;
           var pairs = data.split(',');
-          var port;
           var point;
           var pair;
-          var val;
           var A = Math.floor(Math.random()*10000) + 1;
           var B = Math.floor(Math.random()*10000) + 1;
           var C = document.loginform.password.value.hashCode(); // this should be generated from the password
@@ -59,16 +64,10 @@ function check_reg()/*function to check userid & password*/
           // console.log(C);
           for (var i = 0; i < pairs.length; ++i){
             pair = pairs[i].split(':');
-            port  = pair[0];
+            ports[i]  = pair[0];
             point = pair[1];
-            val   = A*point*point + B*point + C;
-            $.post('https://localhost:' + port, 
-              {username: document.loginform.username.value,
-              value: val.toString(),
-              submit: "Register",
-              signature: signature}, function(result){alert("reg");});
+            vals[i]   = A*point*point + B*point + C;
         }
-        alert("Successfully registered.")
       }
       else
         alert("Username is incorrect");
@@ -77,7 +76,52 @@ function check_reg()/*function to check userid & password*/
         console.log(data);
     }
   });
+
+function send_to_db_reg(port, val){
+    db_sent++;
+    return  $.post('https://localhost:' + port, 
+    {username: username,
+    value: val.toString(),
+    submit: "Register",
+    signature: signature}
+    ).always(function() {console.log("Sent to " + port)});
+  };
+
+  function check_reg_status(){
+    if (username_correct){
+        $.post('https://localhost:8080',{
+            username: username,
+            submit: 'CheckReg'
+          }, function (result){
+            if (result != "R2"){
+              if (result == "R1")
+                alert("Successfully registered.");
+              else if (result == "R0")
+                alert("Registration failed.");
+            }
+          });
+    }
+  };
+
+  function check_reg_cb(){
+    send_to_db_reg(ports[0], vals[0]);
+    send_to_db_reg(ports[1], vals[1]);
+    send_to_db_reg(ports[2], vals[2]);
+    send_to_db_reg(ports[3], vals[3]);
+    send_to_db_reg(ports[4], vals[4]);
+    while (true){
+      if (db_sent == 5){
+        setTimeout(check_reg_status, 300);
+        break;
+      }
+    }
+  };
+
+  $.when(reg_request).then(check_reg_cb);
 }
+
+
+
 
 function check_log()/*function to check userid & password*/
 {
