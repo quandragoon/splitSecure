@@ -213,7 +213,6 @@ class CustomHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
 
     def do_GET(self):
         cookies = self.headers.getheader('Cookie')
-        print cookies
         distrib_pass_token_cookie = None
         distrib_pass_username = None
         try:
@@ -231,17 +230,17 @@ class CustomHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
             else:
                 distrib_pass_username = cookies[
                     cookie_index + 16: next_semicolon]
-            distrib_pass_token_cookie = urllib.unquote(distrib_pass_token_cookie)
-            print distrib_pass_token_cookie, distrib_pass_username
-        except ValueError as e:
-            print e
+            distrib_pass_token_cookie = urllib.unquote(urllib.unquote(distrib_pass_token_cookie))
+        except ValueError:
+            pass
 
-        msg = SHA.new()
-        msg.update(distrib_pass_username)
-        verifier = PKCS1_PSS.new(public_key)
+        if distrib_pass_username:
+            msg = SHA.new()
+            msg.update(distrib_pass_username)
+            verifier = PKCS1_PSS.new(public_key)
 
-        if (not verifier.verify(msg, distrib_pass_token_cookie)):
-            distrib_pass_token_cookie = None
+            if (not verifier.verify(msg, distrib_pass_token_cookie)):
+                distrib_pass_token_cookie = None
 
         # Add code here that checks validity of the token
         self.send_response(200)
@@ -250,10 +249,10 @@ class CustomHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
         if self.path == '/page_style.css':
             f = open("static/page_style.css", 'r')
         elif self.path == '/welcome.html':
-            # if distrib_pass_token_cookie is None:
-            #     f = open("static/login.html", 'r')
-            # else:
-            f = open("static/welcome.html", 'r')
+            if distrib_pass_token_cookie is None:
+                f = open("static/login.html", 'r')
+            else:
+                f = open("static/welcome.html", 'r')
         else:
             f = open("static/login.html", 'r')
         content = f.read()
