@@ -4,7 +4,7 @@
   <form name="logoutform" class="login-form" method="POST">
   
     <div class="header">
-    <h1>Welcome to DistribPassword, new_user!</h1>
+    <h1 id="myHeading">Welcome to DistribPassword, new_user!</h1>
     <span>You have successfully logged in!!!</span>
     </div>
   
@@ -44,14 +44,13 @@ function deleteCookie(c_name) {
 window.onload = function() {
     console.log("Called when window is loaded!!!");
     var cookie = getCookie("DistribPassword");
-    console.log(cookie);
+    myHeading.innerText = "Welcome to DistribPassword, " + cookie;
     if (cookie === null) {
         window.location = "https://localhost:8080";
     }
 }
 
 function logout() {
-    // TODO: Clear the cookie here
     deleteCookie('DistribPassword');
     window.location = "https://localhost:8080";
 }
