@@ -44,9 +44,7 @@ function check_reg()/*function to check userid & password*/
     submit:'Register'
     },
     success: function (data) {
-        console.log(data);
         signature = data.split('#').slice(1).join('#');
-        console.log(signature);
         data = data.split('#')[0];
         if (data != "Username is incorrect") {
           var pairs = data.split(',');
@@ -99,7 +97,6 @@ function check_log()/*function to check userid & password*/
 		submit:'Login'
 		},
     success: function (data) {
-      console.log(data);
       if (data != "Username is incorrect"){
         username_correct = 1;
         loginID = data.split('#')[0];
@@ -160,7 +157,6 @@ function check_log()/*function to check userid & password*/
     send_to_db(ports[1], vals[1]);
     send_to_db(ports[2], vals[2]);
     while (true){
-      console.log(db_sent);
       if (db_sent == 3){
         setTimeout(check_auth, 300);
         break;

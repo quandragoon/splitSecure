@@ -148,7 +148,7 @@ def get_signature(username):
     msg.update(username)
     signer = PKCS1_PSS.new(private_key)
     signature = signer.sign(msg)
-    return signature
+    return urllib.quote(signature)
 
 
 """

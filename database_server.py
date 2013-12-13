@@ -107,7 +107,7 @@ class CustomHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
             submit_type = args.get('submit', None)[0]
             value = int(args.get('value', None)[0])
             signature = args.get('signature', None)[0]
-            signature = str(signature)
+            signature = urllib.unquote(signature)
         except:
             return
 
