@@ -66,6 +66,8 @@ function check_reg()/*function to check userid & password*/
         }
         alert("Successfully registered.")
       }
+      else
+        alert("Username is incorrect");
     },
     error: function (data) {
         console.log(data);
@@ -113,6 +115,7 @@ function check_log()/*function to check userid & password*/
     },
     error: function (data) {
         console.log(data);
+        alert("Failed to login");
     }
 	});
 
