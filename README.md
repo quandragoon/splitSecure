@@ -1,4 +1,4 @@
-DistribPassword is a distributed server-side password storage system.
+SplitSecure is a distributed server-side password storage system.
 
 This prototype is developed by Pranav Kaundinya, Deepak Narayanan, Rohan Mahajan and
 Quan Nguyen. The system as configured consists of an authentication (auth) server and
