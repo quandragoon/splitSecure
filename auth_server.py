@@ -239,6 +239,9 @@ class CustomHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
             username = args.get('username', None)[0]
             loginID = args.get('loginID', None)[0]
             self.do_AUTH(username, loginID)
+        elif submit_type == 'CheckReg':
+            username = args.get('username', None)[0]
+            self.do_CHECKREG(username)
         elif submit_type == 'PublicKey':
             global public_key
             public_key_str = public_key.exportKey()
@@ -308,12 +311,17 @@ class CustomHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
         else:
             self.send_post_response("Invalid loginID")
 
+    def do_CHECKREG(self, username):
+        if(not REGISTRATION.check_pending_registration(username)):
+            self.send_post_response("R1");
+        else:
+            self.send_post_response("R2");
+
     def verify_registration(self, serverID, username):
         if REGISTRATION.check_pending_registration(username):
             REGISTRATION.update_pending_registration(username, serverID)
             if(not REGISTRATION.check_pending_registration(username)):
                 print username, ': Registration Successful'
-                # TODO: Notify client of successful registration
                 pass
 
     def verify_login(self, serverID, username, difference, loginID):
