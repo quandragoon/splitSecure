@@ -25,7 +25,6 @@ class Authentication:
 
     def verify_password(self, username):
         data = self.pending_login_requests[username][0]
-        print data
         a1 = data[0][1] ** 2
         b1 = data[0][1]
         c1 = data[0][2] * -1
@@ -40,7 +39,6 @@ class Authentication:
         self.delete_pending_login(username)
         sol1 = self.solve_linear_equation(a1, b1, c1, a2, b2, c2)
         sol2 = self.solve_linear_equation(a3, b3, c3, a2, b2, c2)
-        print sol1, '   ', sol2
 
         if sol1[0] == sol2[0] and sol1[1] == sol2[1]:
             return True

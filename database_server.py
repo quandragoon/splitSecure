@@ -24,8 +24,6 @@ public_key = None
 
 
 def get_polynomial_value(username, server_id):
-    print username, server_id
-
     polynomialdb = db.polynomial_mapping_setup(server_id)
     mapping = polynomialdb.query(
         db.UsernamePolynomialValueMapping).get(username)
@@ -35,7 +33,6 @@ def get_polynomial_value(username, server_id):
 
 
 def set_polynomial_value(username, polynomial_value, server_id):
-    print username, polynomial_value, server_id
     polynomialdb = db.polynomial_mapping_setup(server_id)
     mapping = polynomialdb.query(
         db.UsernamePolynomialValueMapping).get(username)
@@ -58,7 +55,6 @@ def handle_registration(username, polynomial_value, server_id):
 
 def handle_login(username, entered_polynomial_value, server_id):
     stored_polynomial_value = int(get_polynomial_value(username, server_id))
-    print stored_polynomial_value
     if stored_polynomial_value:
         difference = stored_polynomial_value - entered_polynomial_value
         return difference
@@ -102,7 +98,6 @@ class CustomHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
         try:
             key = AES.decrypt(args.get('key', None)[0])
             AES.set_key(key)
-            print "Renewed Key: ", key
             return
         except:
             pass
@@ -112,18 +107,16 @@ class CustomHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
             submit_type = args.get('submit', None)[0]
             value = int(args.get('value', None)[0])
             signature = args.get('signature', None)[0]
+            signature = str(signature)
         except:
             return
 
         msg = SHA.new()
         msg.update(username)
-        print public_key
         verifier = PKCS1_PSS.new(public_key)
 
         if submit_type == 'Login':
             difference = handle_login(username, value, SERVER_ID)
-            print 'Login ', username, ': Value = ', value, ', \
-                Difference = ', difference
             loginID = args.get('loginID', None)[0]
             if (not verifier.verify(msg, signature)):
                 return
@@ -133,11 +126,8 @@ class CustomHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
 
         elif submit_type == 'Register':
             if (not verifier.verify(msg, signature)):
-                print msg, signature
-                print "NOT REGISTERED"
                 return
             if handle_registration(username, value, SERVER_ID):
-                print 'Registered ', username, ' Value = ', value
                 self.notify_registration(username)
         return
 
@@ -175,7 +165,6 @@ class CustomHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
         self.send_header("Content-type", "text/plain")
         self.end_headers()
         self.wfile.write(message)
-        print 'Sent Response: ', message
 
 if __name__ == '__main__':
     SERVER_ID = int(sys.argv[1])
