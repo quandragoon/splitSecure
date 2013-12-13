@@ -35,6 +35,7 @@ String.prototype.hashCode = function(){
 
 function check_reg()/*function to check userid & password*/
 {
+  var signature;
   $.ajax({
     url: 'https://localhost:8080',
     type: 'POST',
@@ -43,6 +44,10 @@ function check_reg()/*function to check userid & password*/
     submit:'Register'
     },
     success: function (data) {
+        console.log(data);
+        signature = data.split('#').slice(1).join('#');
+        console.log(signature);
+        data = data.split('#')[0];
         if (data != "Username is incorrect") {
           var pairs = data.split(',');
           var port;
@@ -62,7 +67,8 @@ function check_reg()/*function to check userid & password*/
             $.post('https://localhost:' + port, 
               {username: document.loginform.username.value,
               value: val.toString(),
-              submit: "Register"}, function(result){alert("reg");});
+              submit: "Register",
+              signature: signature}, function(result){alert("reg");});
         }
         alert("Successfully registered.")
       }
@@ -77,6 +83,7 @@ function check_reg()/*function to check userid & password*/
 
 function check_log()/*function to check userid & password*/
 {
+  var signature;
   var username = document.loginform.username.value;
   var password = document.loginform.password.value;
   var loginID;
@@ -96,6 +103,7 @@ function check_log()/*function to check userid & password*/
       if (data != "Username is incorrect"){
         username_correct = 1;
         loginID = data.split('#')[0];
+        signature = data.split('#').slice(2).join('#');
         data = data.split('#')[1];
         var pairs = data.split(',');
         var point;
@@ -125,7 +133,8 @@ function check_log()/*function to check userid & password*/
     {username: username,
     loginID: loginID,
     value: val.toString(),
-    submit: "Login"}
+    submit: "Login",
+    signature: signature}
     ).always(function() {console.log("Sent to " + port)});
   };
 
