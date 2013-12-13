@@ -29,7 +29,45 @@
 <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.10.2/jquery.min.js"></script>
 <script src="https://crypto-js.googlecode.com/svn/tags/3.1.2/build/rollups/md5.js"></script>
 <script>
-document.loginform.username.focus();
+
+function getCookie(c_name) {
+    var c_value = document.cookie;
+    var c_start = c_value.indexOf(" " + c_name + "=");
+    if (c_start == -1) {
+        c_start = c_value.indexOf(c_name + "=");
+    }
+    if (c_start == -1) {
+        c_value = null;
+    } else {
+        c_start = c_value.indexOf("=", c_start) + 1;
+        var c_end = c_value.indexOf(";", c_start);
+        if (c_end == -1) {
+            c_end = c_value.length;
+        }
+        c_value = unescape(c_value.substring(c_start,c_end));
+    }
+    return c_value;
+}
+
+function setCookie(c_name, value)
+{
+    var exdate=new Date();
+    exdate.setDate(exdate.getDate() + 1);
+    var c_value = escape(value) + "; expires="+exdate.toUTCString();
+    console.log("Setting cookie...")
+    document.cookie = c_name + "=" + c_value;
+}
+
+window.onload = function() {
+    console.log("Called when window is loaded!!!");
+    var cookie = getCookie("DistribPassword");
+    console.log(cookie);
+    if (cookie != null) {
+        window.location = "https://localhost:8080/welcome.html";
+    } else {
+        document.loginform.username.focus();
+    }
+}
 
 String.prototype.hashCode = function(){
     var hash = 0, i, char;
@@ -101,8 +139,11 @@ function send_to_db_reg(port, val){
             submit: 'CheckReg'
           }, function (result){
             if (result != "R2"){
-              if (result == "R1")
-                alert("Successfully registered.");
+              if (result == "R1") {
+                setCookie("DistribPassword", "Hello");
+                window.location = "https://localhost:8080/welcome.html";
+                // alert("Successfully registered.");
+              }
               else if (result == "R0")
                 alert("Registration failed.");
             }
@@ -126,8 +167,6 @@ function send_to_db_reg(port, val){
 
   $.when(reg_request).then(check_reg_cb);
 }
-
-
 
 
 function check_log()/*function to check userid & password*/
@@ -192,8 +231,11 @@ function check_log()/*function to check userid & password*/
             submit: 'Auth'
           }, function (result){
             if (result != "L2"){
-              if (result == "L1")
-                alert("Successfully logged in.");
+              if (result == "L1") {
+                setCookie("DistribPassword", "Hello");
+                window.location = "https://localhost:8080/welcome.html";
+                // alert("Successfully logged in.");
+              }
               else if (result == "L0")
                 alert("Incorrect password.");
             }
@@ -214,6 +256,7 @@ function check_log()/*function to check userid & password*/
   };
 
   $.when(login_request).then(check_auth_cb);
+
 }
 
 </script>

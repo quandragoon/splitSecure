@@ -1,0 +1,58 @@
+<link rel="stylesheet" type="text/css" href="page_style.css" media="screen" />
+<div id="wrapper">
+
+  <form name="logoutform" class="login-form" method="POST">
+  
+    <div class="header">
+    <h1>Welcome to DistribPassword, new_user!</h1>
+    <span>You have successfully logged in!!!</span>
+    </div>
+  
+    <div class="footer">
+    <input type="button" name="submit" value="Logout" class="button" onclick="logout()" />
+    </div>
+  
+  </form>
+
+</div>
+<div class="gradient"></div>
+
+<script>
+function getCookie(c_name) {
+    var c_value = document.cookie;
+    var c_start = c_value.indexOf(" " + c_name + "=");
+    if (c_start == -1) {
+        c_start = c_value.indexOf(c_name + "=");
+    }
+    if (c_start == -1) {
+        c_value = null;
+    } else {
+        c_start = c_value.indexOf("=", c_start) + 1;
+        var c_end = c_value.indexOf(";", c_start);
+        if (c_end == -1) {
+            c_end = c_value.length;
+        }
+        c_value = unescape(c_value.substring(c_start,c_end));
+    }
+    return c_value;
+}
+
+function deleteCookie(c_name) {
+    document.cookie = c_name + "=;expires=Thu, 01 Jan 1970 00:00:01 GMT;";
+}
+
+window.onload = function() {
+    console.log("Called when window is loaded!!!");
+    var cookie = getCookie("DistribPassword");
+    console.log(cookie);
+    if (cookie === null) {
+        window.location = "https://localhost:8080";
+    }
+}
+
+function logout() {
+    // TODO: Clear the cookie here
+    deleteCookie('DistribPassword');
+    window.location = "https://localhost:8080";
+}
+</script>

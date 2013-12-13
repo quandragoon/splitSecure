@@ -216,6 +216,8 @@ class CustomHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
         self.end_headers()
         if self.path == '/page_style.css':
             f = open("static/page_style.css", 'r')
+        elif self.path == '/welcome.html':
+            f = open("static/welcome.html", 'r')
         else:
             f = open("static/login.html", 'r')
         content = f.read()
