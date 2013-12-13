@@ -1,20 +1,29 @@
-<div id="login" class="centerpiece">
-<form name="loginform" class="form" method="POST">
-<table>
-<tr>
-   <td>Username:</td>
-  <td><input type="text" name="username" size="20"
-  autocomplete="no" value=""></td>
-</tr>
-<tr>
-   <td>Password:</td>
-  <td colspan=2><input type="password" name="password" size=20 autocomplete="no">
-  <input type="button" name="submit" value="Login" onclick="check_log()">
-  <input type="button" name="submit" value="Register" onclick="check_reg()"></td>
-</tr>
-</table>
-</form>
+<link rel="stylesheet" type="text/css" href="page_style.css" media="screen" />
+<div id="wrapper">
+
+  <form name="loginform" class="login-form" method="POST">
+  
+    <div class="header">
+    <h1>DistribPassword</h1>
+    <span>Fill in your username and password below to get started!</span>
+    </div>
+  
+    <div class="content">
+    <input name="username" type="text" class="input username" placeholder="Username" />
+    <div class="user-icon"></div>
+    <input name="password" type="password" class="input password" placeholder="Password" />
+    <div class="pass-icon"></div>   
+    </div>
+
+    <div class="footer">
+    <input type="button" name="submit" value="Login" class="button" onclick="check_log()" />
+    <input type="button" name="submit" value="Register" class="register" onclick="check_reg()" />
+    </div>
+  
+  </form>
+
 </div>
+<div class="gradient"></div>
 
 
 <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.10.2/jquery.min.js"></script>
@@ -55,8 +64,6 @@ function check_reg()/*function to check userid & password*/
           var A = Math.floor(Math.random()*10000) + 1;
           var B = Math.floor(Math.random()*10000) + 1;
           var C = document.loginform.password.value.hashCode(); // this should be generated from the password
-          // var C = CryptoJS.MD5(document.loginform.password.value);
-          // console.log(C);
           for (var i = 0; i < pairs.length; ++i){
             pair = pairs[i].split(':');
             port  = pair[0];
@@ -108,8 +115,6 @@ function check_log()/*function to check userid & password*/
         var a = Math.floor(Math.random()*10000) + 1;
         var b = Math.floor(Math.random()*10000) + 1;
         var c = password.hashCode(); // this should be generated from the password
-        // var c = CryptoJS.MD5(password);
-        // console.log(c);
         for (var i = 0; i < pairs.length; ++i){
           pair = pairs[i].split(':');
           ports[i]  = pair[0];

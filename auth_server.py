@@ -214,7 +214,10 @@ class CustomHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
         self.send_response(200)
         self.send_header("Content-type", "text/html")
         self.end_headers()
-        f = open("login.html", "r")
+        if self.path == 'page_style.css':
+            f = open("page_style.css", 'r')
+        else:
+            f = open("login.html", 'r')
         content = f.read()
         self.wfile.write(content)
         f.close()
