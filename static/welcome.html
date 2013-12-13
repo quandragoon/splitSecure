@@ -44,7 +44,7 @@ function deleteCookie(c_name) {
 window.onload = function() {
     console.log("Called when window is loaded!!!");
     var cookie = getCookie("DistribPassword");
-    myHeading.innerText = "Welcome to DistribPassword, " + cookie;
+    myHeading.innerText = "Welcome to SplitSecure, " + cookie;
     if (cookie === null) {
         window.location = "https://localhost:8080";
     }
