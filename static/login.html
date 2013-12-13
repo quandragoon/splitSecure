@@ -12,8 +12,10 @@
     <input name="username" type="text" class="input username" placeholder="Username" />
     <div class="user-icon"></div>
     <input name="password" type="password" class="input password" placeholder="Password" />
-    <div class="pass-icon"></div>   
+    <div class="pass-icon"></div>  
+    <span id="myStatus" style="color: #f00; font-size: 10pt; position:relative; top: 10px;"></span>
     </div>
+
 
     <div class="footer">
     <input type="button" name="submit" value="Login" class="button" onclick="check_log()" />
@@ -115,7 +117,7 @@ function check_reg()/*function to check userid & password*/
         }
       }
       else
-        alert("Username is incorrect");
+        myStatus.innerText = "Username is taken";
     },
     error: function (data) {
         console.log(data);
@@ -145,7 +147,7 @@ function check_reg()/*function to check userid & password*/
                 // alert("Successfully registered.");
               }
               else if (result == "R0")
-                alert("Registration failed.");
+                myStatus.innerText = "Registration failed.";
             }
           });
     }
@@ -208,7 +210,7 @@ function check_log()/*function to check userid & password*/
     },
     error: function (data) {
         console.log(data);
-        alert("Failed to login");
+        myStatus.innerText = "Failed to login.";
     }
 	});
 
@@ -237,7 +239,7 @@ function check_log()/*function to check userid & password*/
                 // alert("Successfully logged in.");
               }
               else if (result == "L0")
-                alert("Incorrect password.");
+                myStatus.innerText = "Incorrect password.";
             }
           });
     }
