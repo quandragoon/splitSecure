@@ -212,12 +212,47 @@ def login(username):
 class CustomHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
 
     def do_GET(self):
+        cookies = self.headers.getheader('Cookie')
+        print cookies
+        distrib_pass_token_cookie = None
+        distrib_pass_username = None
+        try:
+            cookie_index = cookies.index('DistribPasswordToken')
+            next_semicolon = cookies.find(';', cookie_index)
+            if next_semicolon == -1:
+                distrib_pass_token_cookie = cookies[cookie_index + 21:]
+            else:
+                distrib_pass_token_cookie = cookies[
+                    cookie_index + 21: next_semicolon]
+            cookie_index = cookies.index('DistribPassword')
+            next_semicolon = cookies.find(';', cookie_index)
+            if next_semicolon == -1:
+                distrib_pass_username = cookies[cookie_index + 16:]
+            else:
+                distrib_pass_username = cookies[
+                    cookie_index + 16: next_semicolon]
+            distrib_pass_token_cookie = urllib.unquote(distrib_pass_token_cookie)
+            print distrib_pass_token_cookie, distrib_pass_username
+        except ValueError as e:
+            print e
+
+        msg = SHA.new()
+        msg.update(distrib_pass_username)
+        verifier = PKCS1_PSS.new(public_key)
+
+        if (not verifier.verify(msg, distrib_pass_token_cookie)):
+            distrib_pass_token_cookie = None
+
+        # Add code here that checks validity of the token
         self.send_response(200)
         self.send_header("Content-type", "text/html")
         self.end_headers()
         if self.path == '/page_style.css':
             f = open("static/page_style.css", 'r')
         elif self.path == '/welcome.html':
+            # if distrib_pass_token_cookie is None:
+            #     f = open("static/login.html", 'r')
+            # else:
             f = open("static/welcome.html", 'r')
         else:
             f = open("static/login.html", 'r')
@@ -316,9 +351,9 @@ class CustomHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
 
     def do_CHECKREG(self, username):
         if(not REGISTRATION.check_pending_registration(username)):
-            self.send_post_response("R1");
+            self.send_post_response("R1")
         else:
-            self.send_post_response("R2");
+            self.send_post_response("R2")
 
     def verify_registration(self, serverID, username):
         if REGISTRATION.check_pending_registration(username):
