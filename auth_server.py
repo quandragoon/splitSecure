@@ -4,6 +4,10 @@ import db
 import BaseHTTPServer
 import SimpleHTTPServer
 
+from Crypto.PublicKey import RSA
+from Crypto.Signature import PKCS1_PSS
+from Crypto.Hash import SHA
+
 import random
 import urlparse
 import encryption
@@ -49,6 +53,9 @@ REGISTRATION = registration.Registration(NUM_DATABASE_SERVERS_REG)
 AUTHENTICATION = authentication.Authentication(NUM_DATABASE_SERVERS_AUTH)
 
 httpd = None
+
+public_key = None
+private_key = None
 
 
 """
@@ -103,6 +110,46 @@ def init_priorities():
     print "Initializing priorities..."
     for i in xrange(n):
         DATABASE_PRIORITIES.append(1.0)
+
+
+def renew_key():
+    threading.Timer(KEY_LIFE, renew_key).start()
+    if httpd is None:
+        return
+
+    key = AES.new_key()
+    params = urllib.urlencode({
+        'key': AES.encrypt(str(key)),
+    })
+    headers = {"Content-type": "application/x-www-form-urlencoded",
+               "Accept": "text/plain"}
+    try:
+        for x in DATABASE_SERVERS:
+            conn = httplib.HTTPSConnection('localhost:' + x)
+            conn.request("POST", "/auth-server",
+                         params, headers)
+    except Exception as e:
+        print "Error Distributing Key: ", e
+        return
+
+    print "Distributed Key: ", key
+    AES.set_key(key)
+
+
+def generate_private_public_key_pair():
+    global private_key, public_key
+    private_key = RSA.generate(1024)
+    public_key = private_key.publickey()
+    print "Generated RSA key pair..."
+
+
+def get_signature(username):
+    global private_key
+    msg = SHA.new()
+    msg.update(username)
+    signer = PKCS1_PSS.new(private_key)
+    signature = signer.sign(msg)
+    return signature
 
 
 """
@@ -161,7 +208,7 @@ def login(username):
     compressed_mapping = get_database_servers(username, is_registration=False)
     if not compressed_mapping:
         return None
-    return compressed_mapping
+    return str(compressed_mapping)
 
 
 class CustomHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
@@ -192,6 +239,10 @@ class CustomHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
             username = args.get('username', None)[0]
             loginID = args.get('loginID', None)[0]
             self.do_AUTH(username, loginID)
+        elif submit_type == 'PublicKey':
+            global public_key
+            public_key_str = public_key.exportKey()
+            self.send_post_response(public_key_str)
         elif submit_type == 'DBregister':
             try:
                 username = AES.decrypt(args.get('username', None)[0])
@@ -228,7 +279,10 @@ class CustomHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
         if registration_servers:
             loginID = username + str(random.randint(0, 1000000))
             login_confirm[loginID] = PENDING
-            self.send_post_response(loginID + '#' + registration_servers)
+            signature = get_signature(username)
+            # TODO: Change the way signature is sent as appropriate
+            self.send_post_response(
+                loginID + '#' + registration_servers + '#' + signature)
         else:
             self.send_post_response("Username is incorrect")
 
@@ -237,7 +291,8 @@ class CustomHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
         registration_servers = None
         registration_servers = register(username)
         if registration_servers:
-            self.send_post_response(registration_servers)
+            signature = get_signature(username)
+            self.send_post_response(registration_servers + '#' + signature)
         else:
             self.send_post_response("Username is incorrect")
 
@@ -271,7 +326,7 @@ class CustomHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
             AUTHENTICATION.update_pending_login(username, serverID, difference)
             index = DATABASE_SERVERS.index(serverID)
             DATABASE_PRIORITIES[index] = 1.0 / \
-               ((1.0 / DATABASE_PRIORITIES[index]) - 1.0)
+                ((1.0 / DATABASE_PRIORITIES[index]) - 1.0)
             if(not AUTHENTICATION.check_pending_login(username)):
                 print username, ': Received all responses'
                 if AUTHENTICATION.verify_password(username):
@@ -289,39 +344,18 @@ class CustomHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
         print 'Sent Response: ', message
 
 
-def renew_key():
-    threading.Timer(KEY_LIFE, renew_key).start()
-    if httpd is None:
-        return
-
-    key = AES.new_key()
-    params = urllib.urlencode({
-        'key': AES.encrypt(str(key)),
-    })
-    headers = {"Content-type": "application/x-www-form-urlencoded",
-               "Accept": "text/plain"}
-    try:
-        for x in DATABASE_SERVERS:
-            conn = httplib.HTTPSConnection('localhost:' + x)
-            conn.request("POST", "/auth-server",
-                         params, headers)
-    except Exception as e:
-        print "Error Distributing Key: ", e
-        return
-
-    print "Distributed Key: ", key
-    AES.set_key(key)
-
-
 if __name__ == '__main__':
     try:
         renew_key()
         init_priorities()
+        generate_private_public_key_pair()
         httpd = BaseHTTPServer.HTTPServer(
             ('localhost', AUTH_SERVER_PORT), CustomHandler)
         httpd.socket = ssl.wrap_socket(
-            httpd.socket, keyfile='server.pem', certfile='server.pem', server_side=True)
+            httpd.socket, keyfile='server.pem', certfile='server.pem',
+            server_side=True)
         print 'Started Authentication Server'
         httpd.serve_forever()
-    except:
+    except Exception as e:
+        print e
         httpd.socket.close()
