@@ -2,8 +2,12 @@
 
 import db
 import sys
-import BaseHTTPServer, SimpleHTTPServer
+import BaseHTTPServer
+import SimpleHTTPServer
 
+from Crypto.PublicKey import RSA
+from Crypto.Signature import PKCS1_PSS
+from Crypto.Hash import SHA
 import urlparse
 import urllib
 import httplib
@@ -16,8 +20,12 @@ SERVER_ID = 8001  # This is set during server initialization
 
 AES = encryption.AESCipher()
 
+public_key = None
+
 
 def get_polynomial_value(username, server_id):
+    print username, server_id
+
     polynomialdb = db.polynomial_mapping_setup(server_id)
     mapping = polynomialdb.query(
         db.UsernamePolynomialValueMapping).get(username)
@@ -27,6 +35,7 @@ def get_polynomial_value(username, server_id):
 
 
 def set_polynomial_value(username, polynomial_value, server_id):
+    print username, polynomial_value, server_id
     polynomialdb = db.polynomial_mapping_setup(server_id)
     mapping = polynomialdb.query(
         db.UsernamePolynomialValueMapping).get(username)
@@ -56,12 +65,36 @@ def handle_login(username, entered_polynomial_value, server_id):
     return None
 
 
+def get_public_key_from_auth_server():
+    params = urllib.urlencode({
+        'submit': 'PublicKey',
+    })
+    headers = {"Content-type": "application/x-www-form-urlencoded",
+               "Accept": "text/plain"}
+    success = False
+    while not success:
+        try:
+            conn = httplib.HTTPSConnection("localhost:8080")
+            conn.request("POST", "/auth-server",
+                         params, headers)
+            print "Sending public key request to authentication server..."
+            response = conn.getresponse()
+            data = response.read()
+            global public_key
+            public_key = RSA.importKey(data)
+            conn.close()
+            success = True
+        except:
+            pass
+
+
 class CustomHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
 
     def do_GET(self):
         pass
 
     def do_POST(self):
+        global public_key
         content_len = int(self.headers.getheader('content-length'))
         post_body = self.rfile.read(content_len)
         args = urlparse.parse_qs(post_body)
@@ -78,19 +111,33 @@ class CustomHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
             username = args.get('username', None)[0]
             submit_type = args.get('submit', None)[0]
             value = int(args.get('value', None)[0])
+            signature = args.get('signature', None)[0]
         except:
             return
 
+        msg = SHA.new()
+        msg.update(username)
+        print public_key
+        verifier = PKCS1_PSS.new(public_key)
+
         if submit_type == 'Login':
             difference = handle_login(username, value, SERVER_ID)
-            print 'Login ', username, ': Value = ', value, ', Difference = ', difference
+            print 'Login ', username, ': Value = ', value, ', \
+                Difference = ', difference
             loginID = args.get('loginID', None)[0]
+            if (not verifier.verify(msg, signature)):
+                return
+
             if difference:
                 self.send_difference(username, difference, loginID)
 
         elif submit_type == 'Register':
-            print 'Registered ', username, ' Value = ', value
+            if (not verifier.verify(msg, signature)):
+                print msg, signature
+                print "NOT REGISTERED"
+                return
             if handle_registration(username, value, SERVER_ID):
+                print 'Registered ', username, ' Value = ', value
                 self.notify_registration(username)
         return
 
@@ -133,10 +180,14 @@ class CustomHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
 if __name__ == '__main__':
     SERVER_ID = int(sys.argv[1])
     try:
+        get_public_key_from_auth_server()
         httpd = BaseHTTPServer.HTTPServer(
             ('localhost', SERVER_ID), CustomHandler)
-        httpd.socket = ssl.wrap_socket (httpd.socket, keyfile='server.pem', certfile='server.pem', server_side=True)
+        httpd.socket = ssl.wrap_socket(
+            httpd.socket, keyfile='server.pem', certfile='server.pem',
+            server_side=True)
         print 'Started Database Server ', SERVER_ID
         httpd.serve_forever()
-    except:
+    except Exception as e:
+        print e
         httpd.socket.close()
