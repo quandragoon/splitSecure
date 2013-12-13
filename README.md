@@ -8,3 +8,5 @@ servers involved in every authentication.
 In order to setup the databases, run setup.sh.
 To demonstrate the prototype run demo.sh, which runs the authentication server on port 8080
 and the database servers on ports 8001-8008.
+
+Visit https://localhost:8080 and have fun!

@@ -1,4 +1,5 @@
 #!/bin/bash
+python db.py init-server-mapping &
 python db.py init-db 8001 &
 python db.py init-db 8002 &
 python db.py init-db 8003 &
