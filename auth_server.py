@@ -6,6 +6,7 @@ import SimpleHTTPServer
 
 from Crypto.PublicKey import RSA
 from Crypto.Signature import PKCS1_PSS
+from Crypto.Random import random as crypt_random
 from Crypto.Hash import SHA
 
 import random
@@ -17,8 +18,6 @@ import httplib
 import registration
 import authentication
 import ssl
-
-from http import cookies
 
 AES = encryption.AESCipher()
 KEY_LIFE = 60
@@ -75,7 +74,7 @@ def get_random_database_servers_and_points_registration():
         if index not in indices:
             indices.append(index)
             database_servers.append((DATABASE_SERVERS[index],
-                                    random.randint(0, 10000)))
+                                    int(crypt_random.randint(0, 10000))))
     return database_servers
 
 
@@ -213,11 +212,47 @@ def login(username):
 class CustomHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
 
     def do_GET(self):
+        cookies = self.headers.getheader('Cookie')
+        distrib_pass_token_cookie = None
+        distrib_pass_username = None
+        try:
+            cookie_index = cookies.index('DistribPasswordToken')
+            next_semicolon = cookies.find(';', cookie_index)
+            if next_semicolon == -1:
+                distrib_pass_token_cookie = cookies[cookie_index + 21:]
+            else:
+                distrib_pass_token_cookie = cookies[
+                    cookie_index + 21: next_semicolon]
+            cookie_index = cookies.index('DistribPassword')
+            next_semicolon = cookies.find(';', cookie_index)
+            if next_semicolon == -1:
+                distrib_pass_username = cookies[cookie_index + 16:]
+            else:
+                distrib_pass_username = cookies[
+                    cookie_index + 16: next_semicolon]
+            distrib_pass_token_cookie = urllib.unquote(urllib.unquote(distrib_pass_token_cookie))
+        except ValueError:
+            pass
+
+        if distrib_pass_username:
+            msg = SHA.new()
+            msg.update(distrib_pass_username)
+            verifier = PKCS1_PSS.new(public_key)
+
+            if (not verifier.verify(msg, distrib_pass_token_cookie)):
+                distrib_pass_token_cookie = None
+
+        # Add code here that checks validity of the token
         self.send_response(200)
         self.send_header("Content-type", "text/html")
         self.end_headers()
         if self.path == '/page_style.css':
             f = open("static/page_style.css", 'r')
+        elif self.path == '/welcome.html':
+            if distrib_pass_token_cookie is None:
+                f = open("static/login.html", 'r')
+            else:
+                f = open("static/welcome.html", 'r')
         else:
             f = open("static/login.html", 'r')
         content = f.read()
@@ -280,7 +315,7 @@ class CustomHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
                 ((1.0 / DATABASE_PRIORITIES[index]) + 1.0)
 
         if registration_servers:
-            loginID = username + str(random.randint(0, 1000000))
+            loginID = username + str(crypt_random.randint(0, 1000000))
             login_confirm[loginID] = PENDING
             signature = get_signature(username)
             # TODO: Change the way signature is sent as appropriate
@@ -302,9 +337,8 @@ class CustomHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
         key = loginID
         if key in login_confirm.keys():
             if login_confirm[key] == PASS:
+                self.send_post_response("L1")
                 del login_confirm[key]
-                cookie = 'username=' + get_signature(username)
-                self.send_post_response("L1", cookie)
                 # TODO: send cookie to user
             elif login_confirm[key] == PENDING:
                 self.send_post_response("L2")
@@ -316,9 +350,9 @@ class CustomHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
 
     def do_CHECKREG(self, username):
         if(not REGISTRATION.check_pending_registration(username)):
-            self.send_post_response("R1");
+            self.send_post_response("R1")
         else:
-            self.send_post_response("R2");
+            self.send_post_response("R2")
 
     def verify_registration(self, serverID, username):
         if REGISTRATION.check_pending_registration(username):
@@ -341,10 +375,8 @@ class CustomHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
                     print username, ': Login Failed'
                     login_confirm[loginID] = FAIL
 
-    def send_post_response(self, message, cookie=None):
+    def send_post_response(self, message):
         self.send_response(200)
-        if cookie:
-            self.send_header("Set-Cookie", cookie)
         self.send_header("Content-type", "text/plain")
         self.end_headers()
         self.wfile.write(message)
