@@ -6,6 +6,7 @@ import SimpleHTTPServer
 
 from Crypto.PublicKey import RSA
 from Crypto.Signature import PKCS1_PSS
+from Crypto.Random import random as crypt_random
 from Crypto.Hash import SHA
 
 import random
@@ -73,7 +74,7 @@ def get_random_database_servers_and_points_registration():
         if index not in indices:
             indices.append(index)
             database_servers.append((DATABASE_SERVERS[index],
-                                    random.randint(0, 10000)))
+                                    int(crypt_random.randint(0, 10000))))
     return database_servers
 
 
@@ -280,7 +281,7 @@ class CustomHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
                 ((1.0 / DATABASE_PRIORITIES[index]) + 1.0)
 
         if registration_servers:
-            loginID = username + str(random.randint(0, 1000000))
+            loginID = username + str(crypt_random.randint(0, 1000000))
             login_confirm[loginID] = PENDING
             signature = get_signature(username)
             # TODO: Change the way signature is sent as appropriate
