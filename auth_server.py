@@ -18,6 +18,8 @@ import registration
 import authentication
 import ssl
 
+from http import cookies
+
 AES = encryption.AESCipher()
 KEY_LIFE = 60
 
@@ -300,8 +302,9 @@ class CustomHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
         key = loginID
         if key in login_confirm.keys():
             if login_confirm[key] == PASS:
-                self.send_post_response("L1")
                 del login_confirm[key]
+                cookie = 'username=' + get_signature(username)
+                self.send_post_response("L1", cookie)
                 # TODO: send cookie to user
             elif login_confirm[key] == PENDING:
                 self.send_post_response("L2")
@@ -338,8 +341,10 @@ class CustomHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
                     print username, ': Login Failed'
                     login_confirm[loginID] = FAIL
 
-    def send_post_response(self, message):
+    def send_post_response(self, message, cookie=None):
         self.send_response(200)
+        if cookie:
+            self.send_header("Set-Cookie", cookie)
         self.send_header("Content-type", "text/plain")
         self.end_headers()
         self.wfile.write(message)
