@@ -52,6 +52,7 @@ window.onload = function() {
 
 function logout() {
     deleteCookie('DistribPassword');
+    deleteCookie('DistribPasswordToken')
     window.location = "https://localhost:8080";
 }
 </script>
